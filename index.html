@@ -1,0 +1,2203 @@
+<title>잼</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://o6cdhdutve.execute-api.ap-northeast-2.amazonaws.com">
+<link rel="stylesheet" href="https://o6cdhdutve.execute-api.ap-northeast-2.amazonaws.com/v1/api/css/drop_fontstream_css/?sid=gAAAAABqhEUsJjjEcELEwMnCZ2xhz9pk3qPygBt7I-B1lb1BPznjuE85zA5DyO9B0p7MB7QR91u71CVMSOIO3wS9_zmNZscnUttkgTmoJ2Pa7l_EnljVemy3mLC746_iFXWPMs9R9AzmsKxS1PIeJmU3-SLpLB1yKzMhMMiXPgE-BteKPXn6PhjuynsqU2M-lgz9Q2hC9mFyZ9H70aStkTt8A0hGe9doLarL0rtynWzp589lS3ZtZNfNVI2gGWR50DYyXYPwW9M8" charset="utf-8" referrerpolicy="origin">
+<style>
+  :root {
+    --bg: #FFF129;
+    --border: #FFDB38;
+    --white: #FFFFFF;
+    --black: #000000;
+    --gray: #DADADA;
+    --ink: #2b2b1a;
+    --shadow: rgba(0,0,0,0.18);
+    /* 한글: SD 그레타 산스, 영문: Frutiger LT Std — 각자 폴백에 서로를 포함해
+       한/영이 섞인 문구에서도 두 서체가 자연스럽게 이어지도록 함. */
+    --font-kr: 'SD Greta Sans', 'Noto Sans KR', sans-serif;
+    --font-en: 'Frutiger LT Std', 'SD Greta Sans', 'Noto Sans KR', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    overflow: hidden; background: var(--bg);
+  }
+  body { font-family: var(--font-kr); font-weight: 400; }
+
+  /* ===================== screen stack + transition ===================== */
+  #screenHome, #screenArchive {
+    position: fixed; inset: 0; width: 100%; height: 100%;
+  }
+  #screenHome {
+    z-index: 5;
+    transition: opacity 0.7s cubic-bezier(.4,0,.2,1), transform 0.7s cubic-bezier(.4,0,.2,1);
+    cursor: pointer;
+  }
+  #screenHome.jl-leaving { opacity: 0; transform: scale(1.08); pointer-events: none; }
+
+  #screenArchive {
+    z-index: 1; opacity: 0; transform: scale(0.94); pointer-events: none;
+    transition: opacity 0.7s cubic-bezier(.4,0,.2,1), transform 0.7s cubic-bezier(.4,0,.2,1);
+  }
+  #screenArchive.jam3d-entering { opacity: 1; transform: scale(1); pointer-events: auto; }
+
+  /* ===================== home screen v2 (jl2-*) =====================
+     Matches the Figma redesign (node 48:160): a fixed 1440x900 reference
+     frame reduced to percentages of the screen, so the same relative
+     layout holds on both a MacBook (~16:10) and an iMac (~16:9) display —
+     this is a kiosk build shown on either, not a browser window users
+     resize, so we scale proportionally rather than reflowing at
+     breakpoints. Font sizes use clamp(px, vw, px) so they track window
+     width but never get unreadably small or comically large. */
+  :root {
+    --home-yellow: #FEDC3B;
+    --home-yellow-border: #E9C036;
+  }
+  .jam-landing-v2 {
+    position: relative;
+    font-family: var(--font-kr);
+    color: var(--black);
+    background: var(--white);
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .jl2-yellow-panel {
+    position: absolute; left: 0; top: 0; width: 50%; height: 100%;
+    background: var(--home-yellow); border-right: 3px solid var(--home-yellow-border);
+    overflow: hidden;
+  }
+
+  /* The 5-link "smile" chain mark — exact asset supplied by the user,
+     placed as a single image so its proportions/shape are pixel-exact
+     rather than an approximation built from other glyphs. */
+  .jl2-chain-mark {
+    position: absolute; left: 10%; top: 8%; width: 80%;
+    aspect-ratio: 600 / 387; pointer-events: none;
+  }
+  .jl2-chain-mark img { width: 100%; height: 100%; display: block; }
+
+  /* KR/EN copy sit in one flowing wrapper (not two independently
+     top-positioned blocks) so the gap between the two paragraphs is a
+     real, fixed margin — matching Figma's 30px gap at the 1440px
+     reference frame — instead of drifting with however many lines the
+     browser's font happens to wrap the KR text into. */
+  .jl2-copy-wrap { position: absolute; left: 53.47%; top: 5.56%; width: 43.06%; }
+  .jl2-copy { margin: 0; }
+  /* Fixed 16px — matches the jam/archive screen's established primary text
+     size (see .jam-panel-view h3 and friends), instead of the old vw-based
+     clamp that rendered noticeably larger (~20-21px at a typical 1440px
+     width) than every other screen in the app. */
+  .jl2-copy.jl2-kr {
+    font-size: 16px; line-height: 1.8; font-weight: 400;
+    margin-bottom: clamp(14px, 2.08vw, 30px);
+  }
+  .jl2-copy.jl2-en {
+    font-size: 16px; line-height: 1.619; letter-spacing: -0.02em;
+  }
+
+  .jl2-logo { position: absolute; right: 3.5%; bottom: 5.56%; width: 6.9%; height: auto; color: var(--black); }
+
+  .jl2-nav { position: absolute; left: 53.82%; top: 91.8%; display: flex; gap: clamp(16px, 2.5vw, 36px); }
+  .jl2-nav button {
+    font-family: var(--font-en); font-size: 16px; font-weight: 400; letter-spacing: -0.2px;
+    color: var(--black); background: none; border: none; padding: 4px 2px; cursor: pointer;
+    transition: opacity 0.15s ease, transform 0.1s ease;
+  }
+  .jl2-nav button:hover { opacity: 0.6; }
+  .jl2-nav button:active { transform: scale(0.96); }
+
+  /* ---- intro animation (home screen entrance) ---- */
+  @keyframes jlFadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes jlFadeScale { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
+  @keyframes jlMarkIn { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
+
+  .jl2-copy.jl2-kr { animation: jlFadeUp 0.7s cubic-bezier(.2,.7,.3,1) both; animation-delay: 0.2s; }
+  .jl2-copy.jl2-en { animation: jlFadeUp 0.7s cubic-bezier(.2,.7,.3,1) both; animation-delay: 0.35s; }
+  .jl2-logo { animation: jlFadeScale 0.7s cubic-bezier(.2,.7,.3,1) both; animation-delay: 0.55s; }
+  .jl2-chain-mark { animation: jlMarkIn 0.6s cubic-bezier(.2,.7,.3,1) both; animation-delay: 0.15s; }
+  .jl2-nav button { opacity: 0; animation: jlFadeUp 0.6s cubic-bezier(.2,.7,.3,1) both; }
+  .jl2-nav button:nth-child(1) { animation-delay: 0.65s; }
+  .jl2-nav button:nth-child(2) { animation-delay: 0.7s; }
+  .jl2-nav button:nth-child(3) { animation-delay: 0.75s; }
+  .jl2-nav button:nth-child(4) { animation-delay: 0.8s; }
+
+  @media (max-width: 760px) {
+    .jl2-yellow-panel { width: 100%; height: 42%; border-right: none; border-bottom: 3px solid var(--home-yellow-border); }
+    .jl2-copy-wrap { left: 6%; width: 88%; top: 46%; }
+    .jl2-logo { right: 6%; bottom: 3%; width: 14%; }
+    .jl2-nav { left: 6%; top: 90%; gap: 14px; }
+  }
+
+  /* ===================== archive screen (jam-3d app, unchanged) ===================== */
+  .app {
+    display: flex; width: 100%; height: 100%; min-height: 400px;
+    background: var(--bg); color: var(--black); overflow: hidden;
+  }
+
+  /* ===================== jam/archive screen — left 3D stage + right panel ===================== */
+  .stage-pane {
+    position: relative; width: 50%; height: 100%; flex-shrink: 0; overflow: hidden;
+    background: var(--home-yellow); border-right: 3px solid var(--home-yellow-border);
+  }
+  #scene3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+  #scene3d:active { cursor: grabbing; }
+
+  /* Centered on the LEFT FRAME as a whole (not just text-align within a
+     left-anchored box) and moved down to bottom-center, rather than living
+     up top aligned with the right panel's heading. */
+  .stage-hint {
+    position: absolute; bottom: 6.94%; left: 50%; transform: translateX(-50%); max-width: 70%;
+    font-size: 12px; color: var(--black); opacity: 0.55; text-align: center; pointer-events: none;
+    margin: 0;
+  }
+  .stage-hint .hint-line { display: block; }
+  .stage-hint .hint-line + .hint-line { margin-top: 5px; }
+
+  /* ---- right panel: hosts LOGIN / FRIENDS / JAM list / UPLOAD, one at a time ---- */
+  .jam-panel {
+    position: relative; width: 50%; height: 100%; flex-shrink: 0; overflow: hidden;
+    background: var(--white); border-left: 0;
+  }
+  .jam-panel-view {
+    position: absolute; left: 6.74%; right: 7.15%; top: 5.56%; bottom: 15%;
+    display: none; flex-direction: column;
+  }
+  .jam-panel-view.active { display: flex; }
+  /* Every panel (LOGIN/FRIENDS/JAM/MYPAGE/UPLOAD) uses this exact same
+     heading size/spacing, so the content below always starts at the same
+     relative position no matter which screen is open — this is the single
+     source of truth for the 20px "primary" text size used everywhere
+     (matches Figma nodes 48:661/48:462/49:226/48:200: 20px black, 36px
+     line-height). Secondary/gray text (dates, emails, meta) is 16px
+     #595757 throughout. */
+  .jam-panel-view h3 { margin: 0 0 24px; font-size: 16px; letter-spacing: 0; font-family: var(--font-en); }
+
+  /* JAM list: title / date / 공유, matching the Figma reference (node 48:661).
+     min-height reserves a full page's worth of rows (10 × 44px) so the
+     footer below always sits at the same spot regardless of how many rows
+     actually render on a given page — otherwise a short last page (with
+     just 1-2 entries) would pull the search/pagination footer way up. */
+  .jam-list-rows { overflow-y: auto; display: flex; flex-direction: column; min-height: 440px; }
+  .jam-list-row {
+    appearance: none; border: none; background: none; width: 100%; padding: 0;
+    display: flex; align-items: center; height: 44px; flex-shrink: 0; cursor: pointer;
+    font-family: inherit; text-align: left;
+  }
+  .jam-list-row:hover .jam-list-title { text-decoration: underline; }
+  .jam-list-row.active .jam-list-title { font-weight: 400 !important; }
+  .jam-list-title { flex: 1 1 48%; font-size: 16px; font-family: var(--font-kr); color: var(--black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 10px; }
+  .jam-list-date { flex: 0 0 30%; font-size: 13px; font-family: var(--font-en); color: #595757; text-align: center; }
+  .jam-list-share {
+    flex: 0 0 auto; margin-left: 10px; appearance: none; border: none; background: none; cursor: pointer;
+    font-family: var(--font-en); font-size: 16px; color: var(--black);
+  }
+  .jam-list-share:hover { opacity: 0.6; }
+  .archive-locked { margin: auto; text-align: center; color: var(--black); font-size: 14px; line-height: 1.7; opacity: 0.7; }
+
+  .jam-list-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 20px; flex-shrink: 0; }
+  .jam-list-pagination { display: flex; align-items: center; gap: 18px; }
+  .jam-list-pagination button {
+    appearance: none; border: none; background: none; padding: 0; font-family: var(--font-en);
+    font-size: 16px; color: var(--black); opacity: 0.55; cursor: pointer;
+  }
+  .jam-list-pagination button.current { opacity: 1; font-weight: 400 !important; }
+  .jam-list-pagination span.page-dots { font-size: 16px; opacity: 0.5; }
+
+  .jam-search { position: relative; width: 100%; max-width: 250px; height: 35px; background: #f8f8f8; border-radius: 4px; flex-shrink: 0; }
+  .jam-search input { width: 100%; height: 100%; border: none; background: none; padding: 0 34px 0 12px; font-family: var(--font-en); font-size: 13px; color: var(--black); }
+  .jam-search input:focus { outline: none; }
+  .jam-search svg { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--black); opacity: 0.55; pointer-events: none; }
+
+  /* bottom nav + JAM logo mark, pinned inside the right panel at the same
+     coordinates as the home screen's own nav/logo (see .jl2-nav / .jl2-logo). */
+  .jam-panel-nav { position: absolute; left: 6.74%; top: 91.8%; display: flex; gap: clamp(16px, 2.5vw, 36px); }
+  .jam-panel-nav button {
+    font-family: var(--font-en); font-size: 16px; font-weight: 400; letter-spacing: -0.2px;
+    color: var(--black); background: none; border: none; padding: 4px 2px; cursor: pointer;
+    transition: opacity 0.15s ease, transform 0.1s ease;
+  }
+  .jam-panel-nav button:hover { opacity: 0.6; }
+  .jam-panel-nav button:active { transform: scale(0.96); }
+  .jam-panel-nav button.active { font-weight: 400 !important; }
+  /* .jl2-logo's 6.9% is a share of the FULL home screen (1440px reference).
+     This panel is only half that width (720px), so it needs DOUBLE the
+     percentage — 13.8% — to come out the same physical pixel size. This was
+     the actual cause of the JAM-mark-looks-smaller-on-the-archive-screen bug
+     (the two were using the same number against two different-width boxes). */
+  .jam-panel-logo {
+    position: absolute; right: 3.5%; bottom: 5.56%; width: 13.8%; height: auto;
+    border: none; background: none; padding: 0; cursor: pointer; color: var(--black);
+  }
+  .jam-panel-logo svg { width: 100%; height: auto; display: block; }
+  .jam-panel-logo:hover { opacity: 0.7; }
+
+  /* Fixed position/size as percentages of the stage pane, instead of a
+     per-frame JS projection of the clicked jam's screen position. This is
+     deliberately NOT tied to where the jam mesh renders: the script card
+     always opens in the same place, and the camera framing is what animates
+     to bring the clicked jam over near its left edge and, if it's a lower
+     link, up to vertical center too (see frameCenterX() / animateCenterTo()
+     in main.js).
+     `left: 51%` (vs. 37% in the original Figma flat-icon layout) keeps the
+     jam's own left-edge margin (stage edge → jam) equal to its right-side
+     gap (jam → this card) at the current jam size/shift — the two were
+     asked to match. `top`/`bottom` are symmetric (30% each) so the card
+     sits at true vertical center of the stage, same height as before. */
+  .info-panel {
+    position: absolute; left: 51%; top: 33%; right: 7%; bottom: 27%;
+    background: var(--white); border-radius: 12px;
+    padding: 28px 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.22); display: none; flex-direction: column; gap: 10px;
+  }
+  .info-panel.active { display: flex; }
+  /* Order matches Figma node 57:405 top-to-bottom: title, then date, then
+     the play bar, then the script text — not date-before-title or the play
+     bar trailing the text, which is what this card had before. */
+  .info-title { font-size: 16px; font-weight: 700; margin: 0; flex-shrink: 0; }
+  .info-date { font-size: 11px; color: var(--gray); flex-shrink: 0; }
+  /* Play bar — matches Figma node 57:405: a wide, pill-shaped track with a
+     yellow fill and a small round scrubber dot riding its leading edge (the
+     ::after on the fill), with the play/pause button sitting to the RIGHT of
+     the bar rather than to its left. Sits right under the date at a fixed
+     spot (flex-shrink:0) — it doesn't scroll away with a long script. */
+  .info-controls { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  /* Only the script text (or a friend's reaction) scrolls INSIDE this box
+     when it's too long, instead of stretching the whole card. PREV/NEXT/
+     SHARE lives outside it, so that row always sits at a fixed spot at the
+     bottom of the card — the same way the JAM/FRIENDS lists keep their
+     pagination+search footer pinned regardless of how many rows are
+     showing. */
+  .info-body-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+  /* A little breathing room below the play bar before the script text
+     starts, so the text doesn't sit flush against the controls above it. */
+  .info-script { font-size: 12.5px; line-height: 1.6; color: var(--ink); margin: 10px 0 0; white-space: pre-wrap; }
+  .info-progress { flex: 1; height: 6px; border-radius: 3px; background: #efefef; position: relative; }
+  .info-progress-fill { position: absolute; top: 0; left: 0; height: 100%; width: 0%; background: var(--border); border-radius: 3px; transition: width 0.1s linear; }
+  .info-progress-fill::after {
+    content: ''; position: absolute; top: 50%; right: 0; width: 10px; height: 10px; border-radius: 50%;
+    background: var(--border); border: 2px solid var(--black); transform: translate(50%, -50%);
+  }
+  .info-play {
+    width: 28px; height: 28px; border-radius: 50%; border: none; background: var(--black); color: var(--white);
+    display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+  }
+  .info-play svg { width: 12px; height: 12px; }
+  .info-close { position: absolute; top: 8px; right: 10px; border: none; background: none; font-size: 16px; cursor: pointer; color: var(--gray); }
+  /* Bottom control row — matches Figma node 57:405's PREV/NEXT/SHARE row
+     (replaces the old lone "친구에게 공유하기" underlined link). PREV/NEXT
+     step through this jam's chain (the parent script, then each friend's
+     reaction) on the stage; SHARE opens the friend-picker card below
+     instead of the old random-pick behavior. Pinned at the bottom of the
+     flex column (see .info-body-scroll above) like a footer, the same way
+     pagination+search sit under the JAM/FRIENDS lists. */
+  .info-actions { display: flex; gap: 20px; padding-top: 10px; flex-shrink: 0; }
+  .info-action-btn { appearance: none; border: none; background: none; padding: 0; font-family: var(--font-en); font-size: 12px; color: var(--black); cursor: pointer; }
+  .info-action-btn:hover { opacity: 0.6; }
+
+  /* SHARE card — a second, mutually-exclusive overlay in the exact same
+     spot as .info-panel (see Figma node 57:653: it replaces the script
+     card entirely rather than opening alongside it), listing every friend
+     who hasn't already received this jam so "공유" always shares to a
+     specific, chosen friend instead of picking one at random. */
+  .share-panel { justify-content: flex-start; }
+  .share-subtitle { font-size: 13px; color: #595757; margin: 0 0 4px; }
+  .share-friend-list { overflow-y: auto; display: flex; flex-direction: column; }
+  .share-friend-row { display: flex; align-items: center; height: 34px; flex-shrink: 0; }
+  .share-friend-name { flex: 0 0 30%; font-family: var(--font-kr); font-size: 14px; color: var(--black); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .share-friend-email { flex: 1 1 auto; font-family: var(--font-en); font-size: 12px; color: #595757; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 8px; }
+  .share-friend-btn { flex: 0 0 auto; appearance: none; border: none; background: none; padding: 0; cursor: pointer; font-family: var(--font-en); font-size: 14px; color: var(--black); }
+  .share-friend-btn:hover { opacity: 0.6; }
+
+  .reaction-tag { font-size: 11px; color: var(--black); background: var(--border); border-radius: 8px; padding: 2px 8px; align-self: flex-start; }
+  .info-body-pending { color: var(--gray); font-style: italic; }
+
+
+  /* LOGIN panel — pixel-matched to the Figma reference (node 48:200): 20px
+     labels, flat #f5f5f5 fields, gray REGISTER link, yellow SIGN IN button. */
+  #loginCard .login-title { font-size: 16px; font-weight: 400; margin: 0 0 24px; }
+  .field-label { font-size: 16px; font-weight: 400; margin: 0 0 16px; display: block; }
+  .field-input {
+    width: 100%; height: 35px; border: none; border-radius: 0; background: #f5f5f5;
+    margin-bottom: 28px; padding: 0 14px; font-family: inherit; font-size: 14px; color: var(--black);
+  }
+  #loginPw { margin-bottom: 16px; }
+  .login-register {
+    align-self: flex-start; font-size: 13px; color: #595757; text-decoration: none;
+    margin: 0 0 32px; cursor: pointer; background: none; border: none; padding: 0; font-family: inherit;
+  }
+  .login-register:hover { text-decoration: underline; }
+  .login-submit-btn {
+    width: 100%; height: 35px; border: none; background: var(--home-yellow); color: var(--black);
+    font-family: inherit; font-size: 16px; font-weight: 400; cursor: pointer; letter-spacing: 0;
+  }
+  .login-submit-btn:hover { background: var(--home-yellow-border); }
+  .primary-btn {
+    width: 100%; height: 40px; border: none; border-radius: 10px; background: var(--black); color: var(--white);
+    font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: 0.03em;
+  }
+  .login-error { color: #b00020; font-size: 12px; display: none; margin: -8px 0 10px; }
+
+  /* FRIENDS list: 번호 / 이름 / 이메일, matching the Figma reference (node
+     57:425) column order — a plain per-page row number, then name, then
+     email. The "잼" button was a static, non-functional per-row label and
+     has been removed entirely. Same 56px row height and 20px/16px type
+     scale as the JAM list, and the same pagination + search footer
+     (.jam-list-pagination reused as-is, not a separate style), so this
+     screen reads identically to every other panel instead of having its
+     own smaller one-off sizes. */
+  /* min-height matches .jam-list-rows (10 × 44px = 440px) minus the
+     friend-add-row's own height above it (44px + 4px margin = 48px), so
+     h3 + add-row + list adds up to the same total height as JAM's
+     h3 + list — otherwise the extra add-row would push this panel's
+     footer/search lower than the JAM list's, even though both reserve
+     the same 10-row page. */
+  #friendsList { overflow-y: auto; min-height: 392px; }
+  /* Column widths are measured directly off Figma node 57:425's pixel
+     coordinates (frame width 720px, content inset matches the 6.74%/7.15%
+     .jam-panel-view padding already used everywhere else): 번호 spans
+     x=48.5→168.5 (120px = 19.32% of the 621px content width), 이름 spans
+     x=168.5→399.5 (231px = 37.2%), and 이메일 fills the remainder,
+     right-aligned flush with the row's right edge (its text sits at
+     x=399.5→669.5, right-edge-anchored in Figma) rather than centered. */
+  .friend-row { display: flex; align-items: center; height: 44px; flex-shrink: 0; }
+  .friend-number { flex: 0 0 19.32%; font-family: var(--font-en); font-size: 16px; color: var(--black); }
+  .friend-name { flex: 0 0 37.2%; font-family: var(--font-kr); font-size: 16px; color: var(--black); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .friend-email { flex: 1 1 auto; font-family: var(--font-en); font-size: 13px; color: #595757; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-left: 12px; }
+
+  /* "친구 추가" row — matches the Figma reference (node 57:405): a plain
+     inline row right under the title, always visible (no toggle button /
+     collapsible boxed form), two borderless inputs and a text button.
+     These inputs are NOT a header for the data columns below (Figma
+     positions 이름/메일 at the row's left edge regardless of where the
+     번호/이름/이메일 data columns start) — they're their own compact
+     cluster on the left, reusing .friend-row's 44px height so it lines up
+     with the list below. 친구 추가 sits alone at the far right of the row
+     (not clustered right after the inputs) — the spacer between it and
+     the inputs is what pushes it there. */
+  .friend-add-row { display: flex; align-items: center; height: 44px; flex-shrink: 0; margin-bottom: 4px; gap: 12px; }
+  .friend-add-input {
+    flex: 0 0 auto; min-width: 0; appearance: none; border: none; background: none; padding: 0;
+    font-family: var(--font-kr); font-size: 13px; color: var(--black);
+  }
+  .friend-add-input.friend-add-name { width: 70px; }
+  .friend-add-input.friend-add-email { width: 90px; }
+  .friend-add-input::placeholder { color: #595757; }
+  .friend-add-input:focus { outline: none; }
+  .friend-add-btn {
+    flex: 0 0 auto; appearance: none; border: none; background: none; padding: 0; margin: 0;
+    font-family: var(--font-kr); font-size: 13px; color: #595757; cursor: pointer;
+  }
+  .friend-add-btn:hover { color: var(--black); text-decoration: underline; }
+  .friend-add-spacer { flex: 1 1 auto; }
+
+  /* Small unread-count badge on the LOGIN/LOGOUT nav label, for jams friends sent you. */
+  .js-incoming-badge {
+    display: none; align-items: center; justify-content: center; min-width: 15px; height: 15px; padding: 0 4px;
+    border-radius: 999px; background: #ff4d4f; color: #fff; font-size: 10px; font-weight: 700; margin-left: 5px; vertical-align: middle;
+  }
+  .js-incoming-badge:not(:empty) { display: inline-flex; }
+
+  /* MYPAGE account panel — matches the Figma reference (node 49:226): name
+     plus "회원정보 수정"/"로그아웃" text links up top, a "공유받은 잼 N" count,
+     then one row per shared jam (title + mini play/progress control, sender,
+     reply box) — no divider lines between rows. Same 20px primary / 16px
+     gray secondary scale as every other panel (see .jam-panel-view h3). */
+  .account-head { display: flex; align-items: center; justify-content: space-between; margin: 0 0 24px; flex-shrink: 0; }
+  .account-id { font-size: 13px; color: #595757; font-family: var(--font-en); margin: 0; }
+  .account-head-links { display: flex; align-items: center; gap: 22px; flex-shrink: 0; }
+  .account-link {
+    appearance: none; border: none; background: none; padding: 0; margin: 0;
+    font-family: var(--font-en); font-size: 13px; color: #595757; cursor: pointer;
+  }
+  .account-link:hover { color: var(--black); text-decoration: underline; }
+
+  .incoming-section-title { font-size: 16px; font-weight: 400; font-family: var(--font-en); color: var(--black); margin: 0 0 20px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .js-incoming-count { font-family: var(--font-en); }
+
+  .incoming-list { overflow-y: auto; display: flex; flex-direction: column; }
+  /* Soft tint of the brand yellow (--border/#FFDB38) rather than a flat neutral
+     gray — stays on-brand and still reads as a distinct card against the
+     panel's white background. */
+  .incoming-item {
+    display: flex; flex-direction: column; gap: 14px;
+    background: #FFF6D9; border-radius: 12px; padding: 18px 20px; margin-bottom: 20px;
+  }
+  .incoming-item:last-child { margin-bottom: 0; }
+  .incoming-row1 { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .incoming-title {
+    flex: 1 1 auto; min-width: 0; font-size: 16px; font-weight: 400; font-family: var(--font-kr);
+    margin: 0; color: var(--black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .incoming-player { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; }
+  .incoming-progress { width: 130px; height: 5px; border-radius: 3px; background: var(--white); overflow: hidden; }
+  .incoming-progress-fill { height: 100%; width: 0%; background: var(--home-yellow-border); border-radius: 3px; transition: width 0.1s linear; }
+  .incoming-play-btn {
+    appearance: none; border: none; background: none; padding: 0; width: 15px; height: 15px;
+    display: flex; align-items: center; justify-content: center; color: var(--black); cursor: pointer; flex-shrink: 0;
+  }
+  .incoming-play-btn svg { width: 13px; height: 13px; }
+  .incoming-play-btn:hover { opacity: 0.6; }
+  .incoming-from { font-size: 13px; color: #595757; font-family: var(--font-en); margin: 0; }
+  .incoming-my-reply { font-size: 13px; color: #595757; font-family: var(--font-en); font-style: normal; margin: 2px 0 0; }
+  .incoming-reply-form { position: relative; width: 100%; height: 35px; margin-top: 4px; flex-shrink: 0; }
+  .incoming-reply-form input {
+    width: 100%; height: 100%; border: none; background: var(--white);
+    padding: 0 80px 0 13px; font-family: var(--font-en); font-size: 13px; color: #595757;
+  }
+  .incoming-reply-form input::placeholder { color: #595757; }
+  .incoming-reply-form input:focus { outline: none; }
+  .incoming-reply-form button {
+    position: absolute; right: 0; top: 0; height: 100%; width: 72px; border: none;
+    background: var(--home-yellow); font-family: var(--font-en); font-size: 13px; color: var(--black); cursor: pointer;
+  }
+  .incoming-reply-form button:hover { background: var(--home-yellow-border); }
+  .incoming-empty { font-size: 13px; color: #595757; font-family: var(--font-en); text-align: center; padding: 20px 0; }
+
+  /* UPLOAD (오브제 연결) panel — row-per-file list matching the Figma
+     reference (node 48:863): title / duration / its own 업로드 action,
+     same row pattern as the JAM list's title/date/공유. */
+  .object-status { display: flex; align-items: center; gap: 8px; font-size: 13px; font-family: var(--font-en); color: #595757; margin-bottom: 16px; flex-shrink: 0; }
+  .object-dot { width: 10px; height: 10px; border-radius: 50%; background: #3ecf5f; flex-shrink: 0; }
+  .object-list { display: flex; flex-direction: column; overflow-y: auto; }
+  .object-item {
+    display: flex; align-items: center; height: 44px; flex-shrink: 0;
+    font-size: 16px; font-family: var(--font-kr); color: var(--black);
+  }
+  .object-item .obj-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .object-item .obj-dur { flex: 0 0 15%; font-family: var(--font-en); color: #595757; font-size: 13px; text-align: center; }
+  .object-item .obj-upload {
+    flex: 0 0 auto; appearance: none; border: none; background: none; font-family: var(--font-en);
+    font-size: 16px; color: var(--black); cursor: pointer; padding: 4px 0 4px 16px;
+  }
+  .object-item .obj-upload:hover { opacity: 0.6; }
+  .object-item.uploaded .obj-upload { color: #b7b7b7; pointer-events: none; }
+
+  .toast { position: absolute; left: 50%; bottom: 90px; transform: translateX(-50%) translateY(10px); background: var(--black); color: var(--white); font-size: 12.5px; padding: 8px 16px; border-radius: 20px; opacity: 0; pointer-events: none; transition: opacity 0.25s ease, transform 0.25s ease; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ===== FINAL TYPE NORMALIZATION ===== */
+  .jam-panel-view h3,
+  #loginCard .login-title,
+  #loginCard .field-label,
+  #loginCard .login-register,
+  #loginCard .login-submit-btn,
+  .jam-panel-nav button,
+  .jam-list-row,
+  .jam-list-title,
+  .jam-list-date,
+  .jam-list-share,
+  .jam-list-pagination button,
+  .friend-row,
+  .friend-name,
+  .friend-email,
+  .friend-add-input,
+  .friend-add-btn,
+  .object-item,
+  .object-item .obj-name,
+  .object-item .obj-dur,
+  .object-item .obj-upload,
+  .account-id,
+  .account-link,
+  .incoming-section-title,
+  .incoming-title,
+  .incoming-from,
+  .incoming-script,
+  .incoming-my-reply,
+  .incoming-reply-form input,
+  .incoming-reply-form button {
+    font-weight: 400 !important;
+  }
+
+  /* Keep the intentionally tiny unread badge bold. */
+  .js-incoming-badge { font-weight: 700 !important; }
+
+  /* Home navigation is a real control layer, above the full-screen home click target. */
+  .jl2-nav {
+    z-index: 1000 !important;
+    pointer-events: auto !important;
+  }
+  .jl2-nav button {
+    position: relative;
+    z-index: 1001;
+    pointer-events: auto !important;
+  }
+
+  /* ===== subtle transition motion ===== */
+  #screenHome.jl-leaving {
+    opacity: 0;
+    transform: scale(1.015);
+    transition:
+      opacity .38s ease,
+      transform .42s cubic-bezier(.22,.8,.24,1);
+  }
+
+  #screenArchive {
+    opacity: 0;
+    transform: translateY(4px);
+    transition:
+      opacity .32s ease,
+      transform .38s ease;
+  }
+
+  #screenArchive.jam3d-entering {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .jam-panel-view.active {
+    animation: panelFadeIn .24s ease both;
+  }
+
+  @keyframes panelFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .info-panel.active {
+    animation: infoFadeIn .24s ease both;
+  }
+
+  @keyframes infoFadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .jam-panel-nav button,
+  .jl2-nav button {
+    transition: opacity .18s ease;
+  }
+
+  .jam-panel-nav button:hover,
+  .jl2-nav button:hover {
+    opacity: .6;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+</style>
+
+<div id="screenHome" class="jam-landing-v2">
+  <div class="jl2-yellow-panel">
+    <div class="jl2-chain-mark" aria-hidden="true">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAlgAAAGDCAYAAAD3d26tAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAIsVJREFUeAHt3e2V20aWxvHHPv6+2gh8NwJrIzAcwWojMCYCayJgbQTSREA4AnkiYDsCyREQE4F6IuhlDclRq90vJHALqAv8f+fcpXYsgUChgHpYAMFvJN0JJXwjAADqRw4o4FsBAADAFQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADA2XeH6oT7Xp8KAIA16IT7yAGFpEPdORQAAIgnySEHcIkQAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADAGQELAADA2Xeqw6tDvT7V94ey0591+vNj+kPdnurTof5xev10+t8AAEAMj+UAO/3v9sS/6VVxDpgrYJ0b8n8O1ehLmLqG3ftz8+C/5ca9OdTfT68AAKAujcgBbppDbQ/1+VB3E9Xn03s2ukxyel8AAPC1RuQAN3m2aqNpG/Op2h+q1dPTjVlyei8AAFBfDvhFwXNATQ36WG31eAMnp+UDALBm5ABntTfow9qc1vksOS0XAIA1ipgD7N76J6flunqjOA16v/Y6XjrMktMyAQBYm5wD8ph6F6z2qjQH2KF2Tis0Z21P5bEsAADWIs9afdD04/aic0CjmLNWpQsAgDVoFHPWquocsJF0R/k3LAAAAWwUa2yuPgfkqcCtpDvKt2EBAAhiq1jj8qQ15EnuOVztNOypqwAAIDZywAWu/bFnO9RH0agAAKwR4epC31zxd3Oj5nBlwiWuaVsAAGpHuLrCNTNYuVFNAABgjbYiXF3s0oD1TjQqAABrlXPAG+Fil9zkvjnUW83j9lT9g/89T1Oavv6JGwAA4C//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" alt="" />
+    </div>
+  </div>
+
+  <div class="jl2-copy-wrap">
+    <p class="jl2-copy jl2-kr">잼은 AI가 일상이 된 2070년, 예측 가능한 관계에서 벗어나 사람과 직접 만나며 생기는 우연과 예상 밖의 재미에 주목하는 브랜드입니다. 목적 없이 만나고, 함께 떠들고, 엉뚱한 이야기를 나누는 과정에서 인간적인 관계의 즐거움을 발견합니다.</p>
+    <p class="jl2-copy jl2-en">JAM is a brand born in 2070, when AI has become an ordinary part of everyday life. It focuses on the unexpected joy of meeting people in person where spontaneous conversations, random encounters, and unplanned moments create a kind of fun that AI cannot provide.</p>
+  </div>
+
+  <svg class="jl2-logo" viewBox="0 0 100 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="JAM logo">
+    <path d="M73.8638 0V4.45785H94.6893V27.2365C94.6893 31.3465 91.2163 34.678 86.932 34.678C82.6476 34.678 79.1746 31.3465 79.1746 27.2365H73.8638C73.8638 34.1591 79.7156 39.7727 86.932 39.7727C94.1483 39.7727 100 34.1591 100 27.2365V0H73.8638Z" fill="black"/>
+    <path d="M26.1362 0V4.45785H5.31074V27.2365C5.31074 31.3465 8.7837 34.678 13.068 34.678C17.3524 34.678 20.8254 31.3465 20.8254 27.2365H26.1362C26.1362 34.1591 20.2844 39.7727 13.068 39.7727C5.85166 39.7727 -0.000133514 34.1591 -0.000133514 27.2365V0H26.1362Z" fill="black"/>
+    <path d="M100 55.6818V51.224H79.1746V28.4453C79.1746 24.3354 82.6476 21.0038 86.932 21.0038C91.2163 21.0038 94.6893 24.3354 94.6893 28.4453H100C100 21.5227 94.1483 15.9091 86.932 15.9091C79.7156 15.9091 73.8638 21.5227 73.8638 28.4453V55.6818H100Z" fill="black"/>
+    <path d="M-0.000133514 55.6818V51.224H20.8254V28.4453C20.8254 24.3354 17.3524 21.0038 13.068 21.0038C8.7837 21.0038 5.31074 24.3354 5.31074 28.4453H-0.000133514C-0.000133514 21.5227 5.85166 15.9091 13.068 15.9091C20.2844 15.9091 26.1362 21.5227 26.1362 28.4453V55.6818H-0.000133514Z" fill="black"/>
+    <path d="M49.0023 0V4.64666H43.4432L47.3161 15.3887V16.8554H42.5315L38.8373 4.292H36.9068V16.8554H31.8184V0H49.0023ZM31.8184 55.6758V19.5364H68.1288V55.6758H31.8184ZM62.5517 24.3033H37.3895V50.9089H62.5517V24.3033ZM62.5517 16.8494V4.76689H56.7542V16.8494H51.1831V0H68.1288V16.8494H62.5577H62.5517Z" fill="black"/>
+  </svg>
+
+  <nav class="jl2-nav">
+    <button type="button" id="homeNavLogin"><span class="js-nav-login-label">LOGIN</span><span class="js-incoming-badge"></span></button>
+    <button type="button" id="homeNavFriends">FRIENDS</button>
+    <button type="button" id="homeNavJam">JAM</button>
+    <button type="button" id="homeNavUpload">UPLOAD</button>
+  </nav>
+</div>
+
+<div id="screenArchive" class="app">
+  <main class="stage-pane">
+    <canvas id="scene3d"></canvas>
+    <p class="stage-hint" id="stageHint">오른쪽 JAM 목록에서 잼을 선택해보세요</p>
+
+    <div class="info-panel" id="infoPanel">
+      <button class="info-close" id="infoClose">×</button>
+      <h3 class="info-title" id="infoTitle"></h3>
+      <p class="info-date" id="infoDate"></p>
+      <div class="info-controls" id="infoControlsMain">
+        <div class="info-progress"><div class="info-progress-fill" id="infoProgressFill"></div></div>
+        <button class="info-play" id="infoPlay"><svg viewBox="0 0 24 24" fill="currentColor" id="infoPlayIcon"><path d="M8 5v14l11-7z"/></svg></button>
+      </div>
+      <div class="info-body-scroll">
+        <p class="info-script" id="infoScript"></p>
+        <div id="infoReactionBody"></div>
+      </div>
+      <div class="info-actions" id="infoActions">
+        <button type="button" class="info-action-btn" id="infoPrevBtn">PREV</button>
+        <button type="button" class="info-action-btn" id="infoNextBtn">NEXT</button>
+        <button type="button" class="info-action-btn" id="infoShareBtn">SHARE</button>
+      </div>
+    </div>
+
+    <div class="info-panel share-panel" id="sharePanel">
+      <button class="info-close" id="shareClose">×</button>
+      <h3 class="info-title">SHARE</h3>
+      <p class="share-subtitle">누구에게 공유하시겠습니까?</p>
+      <div class="share-friend-list" id="shareFriendList"></div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+  </main>
+
+  <aside class="jam-panel">
+    <div class="jam-panel-view active" id="jamListView">
+      <h3>ARCHIVE</h3>
+      <div class="jam-list-rows" id="archiveList"></div>
+      <div class="jam-list-footer">
+        <div class="jam-list-pagination" id="archivePagination"></div>
+        <div class="jam-search">
+          <input type="text" id="searchInput" placeholder="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="jam-panel-view" id="loginCard">
+      <h3 class="login-title">LOGIN</h3>
+      <label class="field-label" for="loginId">ID</label>
+      <input class="field-input" id="loginId" type="text">
+      <label class="field-label" for="loginPw">PASSWORD</label>
+      <input class="field-input" id="loginPw" type="password">
+      <p class="login-error" id="loginError">아이디와 비밀번호를 입력해주세요</p>
+      <button type="button" class="login-register" id="loginRegister">REGISTER</button>
+      <button type="button" class="login-submit-btn" id="loginSubmit">SIGN IN</button>
+    </div>
+
+    <div class="jam-panel-view" id="accountCard">
+      <h3>MYPAGE</h3>
+      <div class="account-head">
+        <p class="account-id js-account-id"></p>
+        <div class="account-head-links">
+          <button type="button" class="account-link js-account-edit">회원정보 수정</button>
+          <button type="button" class="account-link js-account-logout">로그아웃</button>
+        </div>
+      </div>
+      <p class="incoming-section-title">공유받은 잼 <span class="js-incoming-count"></span></p>
+      <div class="incoming-list js-incoming-list"></div>
+    </div>
+
+    <div class="jam-panel-view" id="friendsCard">
+      <h3>FRIENDS</h3>
+      <div class="friend-add-row">
+        <input type="text" id="friendNameInput" class="friend-add-input friend-add-name" placeholder="이름">
+        <input type="text" id="friendEmailInput" class="friend-add-input friend-add-email" placeholder="메일">
+        <div class="friend-add-spacer"></div>
+        <button type="button" class="friend-add-btn" id="friendAddSubmit">친구 추가</button>
+      </div>
+      <div class="js-friends-list" id="friendsList"></div>
+      <div class="jam-list-footer">
+        <div class="js-friends-pagination jam-list-pagination" id="friendsPagination"></div>
+        <div class="jam-search">
+          <input type="text" id="friendSearchInput" placeholder="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="jam-panel-view" id="objectCard">
+      <h3>CONNECTION</h3>
+      <div class="object-status"><span class="object-dot"></span> 오브제 연결됨</div>
+      <div class="object-list" id="objectList"></div>
+    </div>
+
+    <nav class="jam-panel-nav">
+      <button type="button" data-view="login" id="navLogin"><span class="js-nav-login-label">LOGIN</span><span class="js-incoming-badge"></span></button>
+      <button type="button" data-view="friends" id="navFriends">FRIENDS</button>
+      <button type="button" data-view="list" id="navJam" class="active">JAM</button>
+      <button type="button" data-view="upload" id="navUpload">UPLOAD</button>
+    </nav>
+    <button type="button" class="jam-panel-logo" id="archiveHomeLogo" aria-label="메인 화면으로">
+      <svg viewBox="0 0 100 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M73.8638 0V4.45785H94.6893V27.2365C94.6893 31.3465 91.2163 34.678 86.932 34.678C82.6476 34.678 79.1746 31.3465 79.1746 27.2365H73.8638C73.8638 34.1591 79.7156 39.7727 86.932 39.7727C94.1483 39.7727 100 34.1591 100 27.2365V0H73.8638Z" fill="currentColor"/>
+        <path d="M26.1362 0V4.45785H5.31074V27.2365C5.31074 31.3465 8.7837 34.678 13.068 34.678C17.3524 34.678 20.8254 31.3465 20.8254 27.2365H26.1362C26.1362 34.1591 20.2844 39.7727 13.068 39.7727C5.85166 39.7727 -0.000133514 34.1591 -0.000133514 27.2365V0H26.1362Z" fill="currentColor"/>
+        <path d="M100 55.6818V51.224H79.1746V28.4453C79.1746 24.3354 82.6476 21.0038 86.932 21.0038C91.2163 21.0038 94.6893 24.3354 94.6893 28.4453H100C100 21.5227 94.1483 15.9091 86.932 15.9091C79.7156 15.9091 73.8638 21.5227 73.8638 28.4453V55.6818H100Z" fill="currentColor"/>
+        <path d="M-0.000133514 55.6818V51.224H20.8254V28.4453C20.8254 24.3354 17.3524 21.0038 13.068 21.0038C8.7837 21.0038 5.31074 24.3354 5.31074 28.4453H-0.000133514C-0.000133514 21.5227 5.85166 15.9091 13.068 15.9091C20.2844 15.9091 26.1362 21.5227 26.1362 28.4453V55.6818H-0.000133514Z" fill="currentColor"/>
+        <path d="M49.0023 0V4.64666H43.4432L47.3161 15.3887V16.8554H42.5315L38.8373 4.292H36.9068V16.8554H31.8184V0H49.0023ZM31.8184 55.6758V19.5364H68.1288V55.6758H31.8184ZM62.5517 24.3033H37.3895V50.9089H62.5517V24.3033ZM62.5517 16.8494V4.76689H56.7542V16.8494H51.1831V0H68.1288V16.8494H62.5577H62.5517Z" fill="currentColor"/>
+      </svg>
+    </button>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const JAM_GEOM = {"positions": [0.012, 0.001, -0.013098, 0.012, 0.001, -0.013095, 0.012, 0.001, -0.013093, 0.012, 0.001, -0.01309, 0.012, 0.001, -0.013087, 0.012, 0.001, -0.013084, 0.012, 0.001, -0.013081, 0.012, 0.001, -0.013079, 0.012, 0.001, -0.013076, 0.012, 0.001, -0.013073, 0.012, 0.001, -0.01307, 0.012, 0.001, -0.013067, 0.012, 0.001, -0.013064, 0.012, 0.001, -0.013061, 0.012, 0.001, -0.013057, 0.012, 0.001, -0.013053, 0.012, 0.001, -0.01305, 0.012, 0.001, -0.013046, 0.012, 0.001, -0.013043, 0.012, 0.001, -0.01304, 0.012, 0.001, -0.013037, 0.012, 0.001, -0.013035, 0.012, 0.001, -0.013034, 0.011935, 0.001, -0.012227, 0.011769, 0.001, -0.011455, 0.011508, 0.001, -0.010722, 0.011158, 0.001, -0.010037, 0.010726, 0.001, -0.009406, 0.010219, 0.001, -0.008837, 0.009645, 0.001, -0.008336, 0.009009, 0.001, -0.007911, 0.00832, 0.001, -0.007567, 0.007584, 0.001, -0.007314, 0.006809, 0.001, -0.007156, 0.006, 0.001, -0.007102, 0.005669, 0.001, -0.007111, 0.005342, 0.001, -0.007138, 0.005021, 0.001, -0.007183, 0.004705, 0.001, -0.007244, 0.004395, 0.001, -0.007322, 0.004092, 0.001, -0.007416, 0.003796, 0.001, -0.007525, 0.003508, 0.001, -0.007649, 0.003228, 0.001, -0.007787, 0.002956, 0.001, -0.007939, 0.002692, 0.001, -0.008104, 0.002438, 0.001, -0.008282, 0.002438, 0.001, -0.002133, 0.002627, 0.001, -0.002133, 0.003147, 0.001, -0.002133, 0.003932, 0.001, -0.002133, 0.004917, 0.001, -0.002133, 0.006035, 0.001, -0.002133, 0.007219, 0.001, -0.002133, 0.008404, 0.001, -0.002133, 0.009521, 0.001, -0.002133, 0.010506, 0.001, -0.002133, 0.011292, 0.001, -0.002133, 0.011812, 0.001, -0.002133, 0.012, 0.001, -0.002133, 0.012, 0.001, -0.002091, 0.012, 0.001, -0.001975, 0.012, 0.001, -0.0018, 0.012, 0.001, -0.00158, 0.012, 0.001, -0.001331, 0.012, 0.001, -0.001067, 0.012, 0.001, -0.000802, 0.012, 0.001, -0.000553, 0.012, 0.001, -0.000333, 0.012, 0.001, -0.000158, 0.012, 0.001, -4.2e-05, 0.012, 0.001, -0.0, 0.0, 0.001, -0.0, 0.0, 0.001, -0.000256, 0.0, 0.001, -0.000965, 0.0, 0.001, -0.002036, 0.0, 0.001, -0.003379, 0.0, 0.001, -0.004903, 0.0, 0.001, -0.006517, 0.0, 0.001, -0.008131, 0.0, 0.001, -0.009654, 0.0, 0.001, -0.010997, 0.0, 0.001, -0.012068, 0.0, 0.001, -0.012777, 0.0, 0.001, -0.013033, 0.0, 0.001, -0.013036, 0.0, 0.001, -0.013039, 0.0, 0.001, -0.013042, 0.0, 0.001, -0.013045, 0.0, 0.001, -0.013047, 0.0, 0.001, -0.01305, 0.0, 0.001, -0.013053, 0.0, 0.001, -0.013056, 0.0, 0.001, -0.013059, 0.0, 0.001, -0.013062, 0.0, 0.001, -0.013064, 0.0, 0.001, -0.013067, 0.0, 0.001, -0.01307, 0.0, 0.001, -0.013074, 0.0, 0.001, -0.013077, 0.0, 0.001, -0.013081, 0.0, 0.001, -0.013085, 0.0, 0.001, -0.013088, 0.0, 0.001, -0.013092, 0.0, 0.001, -0.013095, 0.0, 0.001, -0.013097, 0.0, 0.001, -0.013099, 0.0, 0.001, -0.013101, 6.6e-05, 0.001, -0.013907, 0.000231, 0.001, -0.01468, 0.000493, 0.001, -0.015412, 0.000843, 0.001, -0.016097, 0.001275, 0.001, -0.016728, 0.001781, 0.001, -0.017297, 0.002356, 0.001, -0.017798, 0.002991, 0.001, -0.018224, 0.00368, 0.001, -0.018567, 0.004416, 0.001, -0.018821, 0.005192, 0.001, -0.018978, 0.006, 0.001, -0.019032, 0.006332, 0.001, -0.019023, 0.006658, 0.001, -0.018996, 0.00698, 0.001, -0.018952, 0.007295, 0.001, -0.01889, 0.007605, 0.001, -0.018812, 0.007908, 0.001, -0.018719, 0.008204, 0.001, -0.01861, 0.008492, 0.001, -0.018486, 0.008773, 0.001, -0.018348, 0.009045, 0.001, -0.018196, 0.009308, 0.001, -0.018031, 0.009562, 0.001, -0.017853, 0.009562, 0.001, -0.024001, 0.0, 0.001, -0.024001, 0.0, 0.001, -0.026134, 0.012, 0.001, -0.026134, 0.012, 0.001, -0.025878, 0.012, 0.001, -0.025169, 0.012, 0.001, -0.024098, 0.012, 0.001, -0.022755, 0.012, 0.001, -0.021232, 0.012, 0.001, -0.019618, 0.012, 0.001, -0.018004, 0.012, 0.001, -0.01648, 0.012, 0.001, -0.015138, 0.012, 0.001, -0.014067, 0.012, 0.001, -0.013358, 0.012, 0.001, -0.013101, 0.009523, 0.001, -0.013546, 0.009425, 0.001, -0.014005, 0.009271, 0.001, -0.014441, 0.009063, 0.001, -0.014848, 0.008807, 0.001, -0.015223, 0.008507, 0.001, -0.015562, 0.008166, 0.001, -0.01586, 0.007788, 0.001, -0.016113, 0.007379, 0.001, -0.016317, 0.006942, 0.001, -0.016468, 0.006481, 0.001, -0.016562, 0.006, 0.001, -0.016594, 0.00552, 0.001, -0.016562, 0.005059, 0.001, -0.016468, 0.004621, 0.001, -0.016317, 0.004212, 0.001, -0.016113, 0.003835, 0.001, -0.01586, 0.003494, 0.001, -0.015562, 0.003193, 0.001, -0.015223, 0.002937, 0.001, -0.014848, 0.002729, 0.001, -0.014441, 0.002575, 0.001, -0.014005, 0.002478, 0.001, -0.013546, 0.002441, 0.001, -0.013067, 0.002478, 0.001, -0.012588, 0.002575, 0.001, -0.012129, 0.002729, 0.001, -0.011694, 0.002937, 0.001, -0.011286, 0.003193, 0.001, -0.010911, 0.003494, 0.001, -0.010572, 0.003835, 0.001, -0.010274, 0.004212, 0.001, -0.010021, 0.004621, 0.001, -0.009817, 0.005059, 0.001, -0.009666, 0.00552, 0.001, -0.009572, 0.006, 0.001, -0.00954, 0.006481, 0.001, -0.009572, 0.006942, 0.001, -0.009666, 0.007379, 0.001, -0.009817, 0.007788, 0.001, -0.010021, 0.008166, 0.001, -0.010274, 0.008507, 0.001, -0.010572, 0.008807, 0.001, -0.010911, 0.009063, 0.001, -0.011286, 0.009271, 0.001, -0.011694, 0.009425, 0.001, -0.012129, 0.009523, 0.001, -0.012588, 0.009559, 0.001, -0.013067, 0.012, -0.001, -0.013098, 0.012, -0.001, -0.013095, 0.012, -0.001, -0.013093, 0.012, -0.001, -0.01309, 0.012, -0.001, -0.013087, 0.012, -0.001, -0.013084, 0.012, -0.001, -0.013081, 0.012, -0.001, -0.013079, 0.012, -0.001, -0.013076, 0.012, -0.001, -0.013073, 0.012, -0.001, -0.01307, 0.012, -0.001, -0.013067, 0.012, -0.001, -0.013064, 0.012, -0.001, -0.013061, 0.012, -0.001, -0.013057, 0.012, -0.001, -0.013053, 0.012, -0.001, -0.01305, 0.012, -0.001, -0.013046, 0.012, -0.001, -0.013043, 0.012, -0.001, -0.01304, 0.012, -0.001, -0.013037, 0.012, -0.001, -0.013035, 0.012, -0.001, -0.013034, 0.011935, -0.001, -0.012227, 0.011769, -0.001, -0.011455, 0.011508, -0.001, -0.010722, 0.011158, -0.001, -0.010037, 0.010726, -0.001, -0.009406, 0.010219, -0.001, -0.008837, 0.009645, -0.001, -0.008336, 0.009009, -0.001, -0.007911, 0.00832, -0.001, -0.007567, 0.007584, -0.001, -0.007314, 0.006809, -0.001, -0.007156, 0.006, -0.001, -0.007102, 0.005669, -0.001, -0.007111, 0.005342, -0.001, -0.007138, 0.005021, -0.001, -0.007183, 0.004705, -0.001, -0.007244, 0.004395, -0.001, -0.007322, 0.004092, -0.001, -0.007416, 0.003796, -0.001, -0.007525, 0.003508, -0.001, -0.007649, 0.003228, -0.001, -0.007787, 0.002956, -0.001, -0.007939, 0.002692, -0.001, -0.008104, 0.002438, -0.001, -0.008282, 0.002438, -0.001, -0.002133, 0.002627, -0.001, -0.002133, 0.003147, -0.001, -0.002133, 0.003932, -0.001, -0.002133, 0.004917, -0.001, -0.002133, 0.006035, -0.001, -0.002133, 0.007219, -0.001, -0.002133, 0.008404, -0.001, -0.002133, 0.009521, -0.001, -0.002133, 0.010506, -0.001, -0.002133, 0.011292, -0.001, -0.002133, 0.011812, -0.001, -0.002133, 0.012, -0.001, -0.002133, 0.012, -0.001, -0.002091, 0.012, -0.001, -0.001975, 0.012, -0.001, -0.0018, 0.012, -0.001, -0.00158, 0.012, -0.001, -0.001331, 0.012, -0.001, -0.001067, 0.012, -0.001, -0.000802, 0.012, -0.001, -0.000553, 0.012, -0.001, -0.000333, 0.012, -0.001, -0.000158, 0.012, -0.001, -4.2e-05, 0.012, -0.001, -0.0, 0.0, -0.001, -0.0, 0.0, -0.001, -0.000256, 0.0, -0.001, -0.000965, 0.0, -0.001, -0.002036, 0.0, -0.001, -0.003379, 0.0, -0.001, -0.004903, 0.0, -0.001, -0.006517, 0.0, -0.001, -0.008131, 0.0, -0.001, -0.009654, 0.0, -0.001, -0.010997, 0.0, -0.001, -0.012068, 0.0, -0.001, -0.012777, 0.0, -0.001, -0.013033, 0.0, -0.001, -0.013036, 0.0, -0.001, -0.013039, 0.0, -0.001, -0.013042, 0.0, -0.001, -0.013045, 0.0, -0.001, -0.013047, 0.0, -0.001, -0.01305, 0.0, -0.001, -0.013053, 0.0, -0.001, -0.013056, 0.0, -0.001, -0.013059, 0.0, -0.001, -0.013062, 0.0, -0.001, -0.013064, 0.0, -0.001, -0.013067, 0.0, -0.001, -0.01307, 0.0, -0.001, -0.013074, 0.0, -0.001, -0.013077, 0.0, -0.001, -0.013081, 0.0, -0.001, -0.013085, 0.0, -0.001, -0.013088, 0.0, -0.001, -0.013092, 0.0, -0.001, -0.013095, 0.0, -0.001, -0.013097, 0.0, -0.001, -0.013099, 0.0, -0.001, -0.013101, 6.6e-05, -0.001, -0.013907, 0.000231, -0.001, -0.01468, 0.000493, -0.001, -0.015412, 0.000843, -0.001, -0.016097, 0.001275, -0.001, -0.016728, 0.001781, -0.001, -0.017297, 0.002356, -0.001, -0.017798, 0.002991, -0.001, -0.018224, 0.00368, -0.001, -0.018567, 0.004416, -0.001, -0.018821, 0.005192, -0.001, -0.018978, 0.006, -0.001, -0.019032, 0.006332, -0.001, -0.019023, 0.006658, -0.001, -0.018996, 0.00698, -0.001, -0.018952, 0.007295, -0.001, -0.01889, 0.007605, -0.001, -0.018812, 0.007908, -0.001, -0.018719, 0.008204, -0.001, -0.01861, 0.008492, -0.001, -0.018486, 0.008773, -0.001, -0.018348, 0.009045, -0.001, -0.018196, 0.009308, -0.001, -0.018031, 0.009562, -0.001, -0.017853, 0.009562, -0.001, -0.024001, 0.0, -0.001, -0.024001, 0.0, -0.001, -0.026134, 0.012, -0.001, -0.026134, 0.012, -0.001, -0.025878, 0.012, -0.001, -0.025169, 0.012, -0.001, -0.024098, 0.012, -0.001, -0.022755, 0.012, -0.001, -0.021232, 0.012, -0.001, -0.019618, 0.012, -0.001, -0.018004, 0.012, -0.001, -0.01648, 0.012, -0.001, -0.015138, 0.012, -0.001, -0.014067, 0.012, -0.001, -0.013358, 0.012, -0.001, -0.013101, 0.009523, -0.001, -0.013546, 0.009425, -0.001, -0.014005, 0.009271, -0.001, -0.014441, 0.009063, -0.001, -0.014848, 0.008807, -0.001, -0.015223, 0.008507, -0.001, -0.015562, 0.008166, -0.001, -0.01586, 0.007788, -0.001, -0.016113, 0.007379, -0.001, -0.016317, 0.006942, -0.001, -0.016468, 0.006481, -0.001, -0.016562, 0.006, -0.001, -0.016594, 0.00552, -0.001, -0.016562, 0.005059, -0.001, -0.016468, 0.004621, -0.001, -0.016317, 0.004212, -0.001, -0.016113, 0.003835, -0.001, -0.01586, 0.003494, -0.001, -0.015562, 0.003193, -0.001, -0.015223, 0.002937, -0.001, -0.014848, 0.002729, -0.001, -0.014441, 0.002575, -0.001, -0.014005, 0.002478, -0.001, -0.013546, 0.002441, -0.001, -0.013067, 0.002478, -0.001, -0.012588, 0.002575, -0.001, -0.012129, 0.002729, -0.001, -0.011694, 0.002937, -0.001, -0.011286, 0.003193, -0.001, -0.010911, 0.003494, -0.001, -0.010572, 0.003835, -0.001, -0.010274, 0.004212, -0.001, -0.010021, 0.004621, -0.001, -0.009817, 0.005059, -0.001, -0.009666, 0.00552, -0.001, -0.009572, 0.006, -0.001, -0.00954, 0.006481, -0.001, -0.009572, 0.006942, -0.001, -0.009666, 0.007379, -0.001, -0.009817, 0.007788, -0.001, -0.010021, 0.008166, -0.001, -0.010274, 0.008507, -0.001, -0.010572, 0.008807, -0.001, -0.010911, 0.009063, -0.001, -0.011286, 0.009271, -0.001, -0.011694, 0.009425, -0.001, -0.012129, 0.009523, -0.001, -0.012588, 0.009559, -0.001, -0.013067, 0.012, -0.001, -0.013098, 0.012, -0.001, -0.013098, 0.012, 0.001, -0.013098, 0.012, 0.001, -0.013098, 0.012, -0.001, -0.013095, 0.012, 0.001, -0.013095, 0.012, -0.001, -0.013093, 0.012, 0.001, -0.013093, 0.012, -0.001, -0.01309, 0.012, 0.001, -0.01309, 0.012, -0.001, -0.013087, 0.012, 0.001, -0.013087, 0.012, -0.001, -0.013084, 0.012, 0.001, -0.013084, 0.012, -0.001, -0.013081, 0.012, 0.001, -0.013081, 0.012, -0.001, -0.013079, 0.012, 0.001, -0.013079, 0.012, -0.001, -0.013076, 0.012, 0.001, -0.013076, 0.012, -0.001, -0.013073, 0.012, 0.001, -0.013073, 0.012, -0.001, -0.01307, 0.012, 0.001, -0.01307, 0.012, -0.001, -0.013067, 0.012, 0.001, -0.013067, 0.012, -0.001, -0.013064, 0.012, 0.001, -0.013064, 0.012, -0.001, -0.013061, 0.012, 0.001, -0.013061, 0.012, -0.001, -0.013057, 0.012, 0.001, -0.013057, 0.012, -0.001, -0.013053, 0.012, 0.001, -0.013053, 0.012, -0.001, -0.01305, 0.012, 0.001, -0.01305, 0.012, -0.001, -0.013046, 0.012, 0.001, -0.013046, 0.012, -0.001, -0.013043, 0.012, 0.001, -0.013043, 0.012, -0.001, -0.01304, 0.012, 0.001, -0.01304, 0.012, -0.001, -0.013037, 0.012, 0.001, -0.013037, 0.012, -0.001, -0.013035, 0.012, 0.001, -0.013035, 0.012, -0.001, -0.013034, 0.012, 0.001, -0.013034, 0.011935, -0.001, -0.012227, 0.011935, 0.001, -0.012227, 0.011769, -0.001, -0.011455, 0.011769, 0.001, -0.011455, 0.011508, -0.001, -0.010722, 0.011508, 0.001, -0.010722, 0.011158, -0.001, -0.010037, 0.011158, 0.001, -0.010037, 0.010726, -0.001, -0.009406, 0.010726, 0.001, -0.009406, 0.010219, -0.001, -0.008837, 0.010219, 0.001, -0.008837, 0.009645, -0.001, -0.008336, 0.009645, 0.001, -0.008336, 0.009009, -0.001, -0.007911, 0.009009, 0.001, -0.007911, 0.00832, -0.001, -0.007567, 0.00832, 0.001, -0.007567, 0.007584, -0.001, -0.007314, 0.007584, 0.001, -0.007314, 0.006809, -0.001, -0.007156, 0.006809, 0.001, -0.007156, 0.006, -0.001, -0.007102, 0.006, 0.001, -0.007102, 0.005669, -0.001, -0.007111, 0.005669, 0.001, -0.007111, 0.005342, -0.001, -0.007138, 0.005342, 0.001, -0.007138, 0.005021, -0.001, -0.007183, 0.005021, 0.001, -0.007183, 0.004705, -0.001, -0.007244, 0.004705, 0.001, -0.007244, 0.004395, -0.001, -0.007322, 0.004395, 0.001, -0.007322, 0.004092, -0.001, -0.007416, 0.004092, 0.001, -0.007416, 0.003796, -0.001, -0.007525, 0.003796, 0.001, -0.007525, 0.003508, -0.001, -0.007649, 0.003508, 0.001, -0.007649, 0.003228, -0.001, -0.007787, 0.003228, 0.001, -0.007787, 0.002956, -0.001, -0.007939, 0.002956, 0.001, -0.007939, 0.002692, -0.001, -0.008104, 0.002692, 0.001, -0.008104, 0.002438, -0.001, -0.008282, 0.002438, 0.001, -0.008282, 0.002438, -0.001, -0.002133, 0.002438, 0.001, -0.002133, 0.002627, -0.001, -0.002133, 0.002627, 0.001, -0.002133, 0.003147, -0.001, -0.002133, 0.003147, 0.001, -0.002133, 0.003932, -0.001, -0.002133, 0.003932, 0.001, -0.002133, 0.004917, -0.001, -0.002133, 0.004917, 0.001, -0.002133, 0.006035, -0.001, -0.002133, 0.006035, 0.001, -0.002133, 0.007219, -0.001, -0.002133, 0.007219, 0.001, -0.002133, 0.008404, -0.001, -0.002133, 0.008404, 0.001, -0.002133, 0.009521, -0.001, -0.002133, 0.009521, 0.001, -0.002133, 0.010506, -0.001, -0.002133, 0.010506, 0.001, -0.002133, 0.011292, -0.001, -0.002133, 0.011292, 0.001, -0.002133, 0.011812, -0.001, -0.002133, 0.011812, 0.001, -0.002133, 0.012, -0.001, -0.002133, 0.012, 0.001, -0.002133, 0.012, -0.001, -0.002091, 0.012, 0.001, -0.002091, 0.012, -0.001, -0.001975, 0.012, 0.001, -0.001975, 0.012, -0.001, -0.0018, 0.012, 0.001, -0.0018, 0.012, -0.001, -0.00158, 0.012, 0.001, -0.00158, 0.012, -0.001, -0.001331, 0.012, 0.001, -0.001331, 0.012, -0.001, -0.001067, 0.012, 0.001, -0.001067, 0.012, -0.001, -0.000802, 0.012, 0.001, -0.000802, 0.012, -0.001, -0.000553, 0.012, 0.001, -0.000553, 0.012, -0.001, -0.000333, 0.012, 0.001, -0.000333, 0.012, -0.001, -0.000158, 0.012, 0.001, -0.000158, 0.012, -0.001, -4.2e-05, 0.012, 0.001, -4.2e-05, 0.012, -0.001, -0.0, 0.012, 0.001, -0.0, 0.0, -0.001, -0.0, 0.0, 0.001, -0.0, 0.0, -0.001, -0.000256, 0.0, 0.001, -0.000256, 0.0, -0.001, -0.000965, 0.0, 0.001, -0.000965, 0.0, -0.001, -0.002036, 0.0, 0.001, -0.002036, 0.0, -0.001, -0.003379, 0.0, 0.001, -0.003379, 0.0, -0.001, -0.004903, 0.0, 0.001, -0.004903, 0.0, -0.001, -0.006517, 0.0, 0.001, -0.006517, 0.0, -0.001, -0.008131, 0.0, 0.001, -0.008131, 0.0, -0.001, -0.009654, 0.0, 0.001, -0.009654, 0.0, -0.001, -0.010997, 0.0, 0.001, -0.010997, 0.0, -0.001, -0.012068, 0.0, 0.001, -0.012068, 0.0, -0.001, -0.012777, 0.0, 0.001, -0.012777, 0.0, -0.001, -0.013033, 0.0, 0.001, -0.013033, 0.0, -0.001, -0.013036, 0.0, 0.001, -0.013036, 0.0, -0.001, -0.013039, 0.0, 0.001, -0.013039, 0.0, -0.001, -0.013042, 0.0, 0.001, -0.013042, 0.0, -0.001, -0.013045, 0.0, 0.001, -0.013045, 0.0, -0.001, -0.013047, 0.0, 0.001, -0.013047, 0.0, -0.001, -0.01305, 0.0, 0.001, -0.01305, 0.0, -0.001, -0.013053, 0.0, 0.001, -0.013053, 0.0, -0.001, -0.013056, 0.0, 0.001, -0.013056, 0.0, -0.001, -0.013059, 0.0, 0.001, -0.013059, 0.0, -0.001, -0.013062, 0.0, 0.001, -0.013062, 0.0, -0.001, -0.013064, 0.0, 0.001, -0.013064, 0.0, -0.001, -0.013067, 0.0, 0.001, -0.013067, 0.0, -0.001, -0.01307, 0.0, 0.001, -0.01307, 0.0, -0.001, -0.013074, 0.0, 0.001, -0.013074, 0.0, -0.001, -0.013077, 0.0, 0.001, -0.013077, 0.0, -0.001, -0.013081, 0.0, 0.001, -0.013081, 0.0, -0.001, -0.013085, 0.0, 0.001, -0.013085, 0.0, -0.001, -0.013088, 0.0, 0.001, -0.013088, 0.0, -0.001, -0.013092, 0.0, 0.001, -0.013092, 0.0, -0.001, -0.013095, 0.0, 0.001, -0.013095, 0.0, -0.001, -0.013097, 0.0, 0.001, -0.013097, 0.0, -0.001, -0.013099, 0.0, 0.001, -0.013099, 0.0, -0.001, -0.013101, 0.0, 0.001, -0.013101, 6.6e-05, -0.001, -0.013907, 6.6e-05, 0.001, -0.013907, 0.000231, -0.001, -0.01468, 0.000231, 0.001, -0.01468, 0.000493, -0.001, -0.015412, 0.000493, 0.001, -0.015412, 0.000843, -0.001, -0.016097, 0.000843, 0.001, -0.016097, 0.001275, -0.001, -0.016728, 0.001275, 0.001, -0.016728, 0.001781, -0.001, -0.017297, 0.001781, 0.001, -0.017297, 0.002356, -0.001, -0.017798, 0.002356, 0.001, -0.017798, 0.002991, -0.001, -0.018224, 0.002991, 0.001, -0.018224, 0.00368, -0.001, -0.018567, 0.00368, 0.001, -0.018567, 0.004416, -0.001, -0.018821, 0.004416, 0.001, -0.018821, 0.005192, -0.001, -0.018978, 0.005192, 0.001, -0.018978, 0.006, -0.001, -0.019032, 0.006, 0.001, -0.019032, 0.006332, -0.001, -0.019023, 0.006332, 0.001, -0.019023, 0.006658, -0.001, -0.018996, 0.006658, 0.001, -0.018996, 0.00698, -0.001, -0.018952, 0.00698, 0.001, -0.018952, 0.007295, -0.001, -0.01889, 0.007295, 0.001, -0.01889, 0.007605, -0.001, -0.018812, 0.007605, 0.001, -0.018812, 0.007908, -0.001, -0.018719, 0.007908, 0.001, -0.018719, 0.008204, -0.001, -0.01861, 0.008204, 0.001, -0.01861, 0.008492, -0.001, -0.018486, 0.008492, 0.001, -0.018486, 0.008773, -0.001, -0.018348, 0.008773, 0.001, -0.018348, 0.009045, -0.001, -0.018196, 0.009045, 0.001, -0.018196, 0.009308, -0.001, -0.018031, 0.009308, 0.001, -0.018031, 0.009562, -0.001, -0.017853, 0.009562, 0.001, -0.017853, 0.009562, -0.001, -0.024001, 0.009562, 0.001, -0.024001, 0.0, -0.001, -0.024001, 0.0, 0.001, -0.024001, 0.0, -0.001, -0.026134, 0.0, 0.001, -0.026134, 0.012, -0.001, -0.026134, 0.012, 0.001, -0.026134, 0.012, -0.001, -0.025878, 0.012, 0.001, -0.025878, 0.012, -0.001, -0.025169, 0.012, 0.001, -0.025169, 0.012, -0.001, -0.024098, 0.012, 0.001, -0.024098, 0.012, -0.001, -0.022755, 0.012, 0.001, -0.022755, 0.012, -0.001, -0.021232, 0.012, 0.001, -0.021232, 0.012, -0.001, -0.019618, 0.012, 0.001, -0.019618, 0.012, -0.001, -0.018004, 0.012, 0.001, -0.018004, 0.012, -0.001, -0.01648, 0.012, 0.001, -0.01648, 0.012, -0.001, -0.015138, 0.012, 0.001, -0.015138, 0.012, -0.001, -0.014067, 0.012, 0.001, -0.014067, 0.012, -0.001, -0.013358, 0.012, 0.001, -0.013358, 0.012, -0.001, -0.013101, 0.012, 0.001, -0.013101, 0.009523, -0.001, -0.013546, 0.009523, -0.001, -0.013546, 0.009523, 0.001, -0.013546, 0.009523, 0.001, -0.013546, 0.009425, -0.001, -0.014005, 0.009425, 0.001, -0.014005, 0.009271, -0.001, -0.014441, 0.009271, 0.001, -0.014441, 0.009063, -0.001, -0.014848, 0.009063, 0.001, -0.014848, 0.008807, -0.001, -0.015223, 0.008807, 0.001, -0.015223, 0.008507, -0.001, -0.015562, 0.008507, 0.001, -0.015562, 0.008166, -0.001, -0.01586, 0.008166, 0.001, -0.01586, 0.007788, -0.001, -0.016113, 0.007788, 0.001, -0.016113, 0.007379, -0.001, -0.016317, 0.007379, 0.001, -0.016317, 0.006942, -0.001, -0.016468, 0.006942, 0.001, -0.016468, 0.006481, -0.001, -0.016562, 0.006481, 0.001, -0.016562, 0.006, -0.001, -0.016594, 0.006, 0.001, -0.016594, 0.00552, -0.001, -0.016562, 0.00552, 0.001, -0.016562, 0.005059, -0.001, -0.016468, 0.005059, 0.001, -0.016468, 0.004621, -0.001, -0.016317, 0.004621, 0.001, -0.016317, 0.004212, -0.001, -0.016113, 0.004212, 0.001, -0.016113, 0.003835, -0.001, -0.01586, 0.003835, 0.001, -0.01586, 0.003494, -0.001, -0.015562, 0.003494, 0.001, -0.015562, 0.003193, -0.001, -0.015223, 0.003193, 0.001, -0.015223, 0.002937, -0.001, -0.014848, 0.002937, 0.001, -0.014848, 0.002729, -0.001, -0.014441, 0.002729, 0.001, -0.014441, 0.002575, -0.001, -0.014005, 0.002575, 0.001, -0.014005, 0.002478, -0.001, -0.013546, 0.002478, 0.001, -0.013546, 0.002441, -0.001, -0.013067, 0.002441, 0.001, -0.013067, 0.002478, -0.001, -0.012588, 0.002478, 0.001, -0.012588, 0.002575, -0.001, -0.012129, 0.002575, 0.001, -0.012129, 0.002729, -0.001, -0.011694, 0.002729, 0.001, -0.011694, 0.002937, -0.001, -0.011286, 0.002937, 0.001, -0.011286, 0.003193, -0.001, -0.010911, 0.003193, 0.001, -0.010911, 0.003494, -0.001, -0.010572, 0.003494, 0.001, -0.010572, 0.003835, -0.001, -0.010274, 0.003835, 0.001, -0.010274, 0.004212, -0.001, -0.010021, 0.004212, 0.001, -0.010021, 0.004621, -0.001, -0.009817, 0.004621, 0.001, -0.009817, 0.005059, -0.001, -0.009666, 0.005059, 0.001, -0.009666, 0.00552, -0.001, -0.009572, 0.00552, 0.001, -0.009572, 0.006, -0.001, -0.00954, 0.006, 0.001, -0.00954, 0.006481, -0.001, -0.009572, 0.006481, 0.001, -0.009572, 0.006942, -0.001, -0.009666, 0.006942, 0.001, -0.009666, 0.007379, -0.001, -0.009817, 0.007379, 0.001, -0.009817, 0.007788, -0.001, -0.010021, 0.007788, 0.001, -0.010021, 0.008166, -0.001, -0.010274, 0.008166, 0.001, -0.010274, 0.008507, -0.001, -0.010572, 0.008507, 0.001, -0.010572, 0.008807, -0.001, -0.010911, 0.008807, 0.001, -0.010911, 0.009063, -0.001, -0.011286, 0.009063, 0.001, -0.011286, 0.009271, -0.001, -0.011694, 0.009271, 0.001, -0.011694, 0.009425, -0.001, -0.012129, 0.009425, 0.001, -0.012129, 0.009523, -0.001, -0.012588, 0.009523, 0.001, -0.012588, 0.009559, -0.001, -0.013067, 0.009559, 0.001, -0.013067], "normals": [0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.9992, 0.0, 0.0406, 0.9992, 0.0, 0.0406, 0.9893, 0.0, 0.1457, 0.9893, 0.0, 0.1457, 0.9619, 0.0, 0.2734, 0.9619, 0.0, 0.2734, 0.9181, 0.0, 0.3964, 0.9181, 0.0, 0.3964, 0.8595, 0.0, 0.5111, 0.8595, 0.0, 0.5111, 0.7876, 0.0, 0.6161, 0.7876, 0.0, 0.6161, 0.7035, 0.0, 0.7107, 0.7035, 0.0, 0.7107, 0.6081, 0.0, 0.7938, 0.6081, 0.0, 0.7938, 0.5022, 0.0, 0.8647, 0.5022, 0.0, 0.8647, 0.3868, 0.0, 0.9222, 0.3868, 0.0, 0.9222, 0.263, 0.0, 0.9648, 0.263, 0.0, 0.9648, 0.1331, 0.0, 0.9911, 0.1331, 0.0, 0.9911, 0.0196, 0.0, 0.9998, 0.0196, 0.0, 0.9998, -0.0551, 0.0, 0.9985, -0.0551, 0.0, 0.9985, -0.1099, 0.0, 0.9939, -0.1099, 0.0, 0.9939, -0.1641, 0.0, 0.9864, -0.1641, 0.0, 0.9864, -0.2174, 0.0, 0.9761, -0.2174, 0.0, 0.9761, -0.2696, 0.0, 0.963, -0.2696, 0.0, 0.963, -0.3206, 0.0, 0.9472, -0.3206, 0.0, 0.9472, -0.3702, 0.0, 0.929, -0.3702, 0.0, 0.929, -0.4183, 0.0, 0.9083, -0.4183, 0.0, 0.9083, -0.4648, 0.0, 0.8854, -0.4648, 0.0, 0.8854, -0.5097, 0.0, 0.8603, -0.5097, 0.0, 0.8603, -0.5529, 0.0, 0.8332, -0.5529, 0.0, 0.8332, 0.4616, 0.0, 0.8871, 0.4616, 0.0, 0.8871, 0.7071, 0.0, -0.7071, 0.7071, 0.0, -0.7071, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.7071, 0.0, -0.7071, 0.7071, 0.0, -0.7071, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.7071, 0.0, 0.7071, 0.7071, 0.0, 0.7071, -0.7071, 0.0, 0.7071, -0.7071, 0.0, 0.7071, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -0.9992, 0.0, -0.0406, -0.9992, 0.0, -0.0406, -0.9893, 0.0, -0.1457, -0.9893, 0.0, -0.1457, -0.9619, 0.0, -0.2734, -0.9619, 0.0, -0.2734, -0.9181, 0.0, -0.3964, -0.9181, 0.0, -0.3964, -0.8595, 0.0, -0.5111, -0.8595, 0.0, -0.5111, -0.7876, 0.0, -0.6161, -0.7876, 0.0, -0.6161, -0.7035, 0.0, -0.7107, -0.7035, 0.0, -0.7107, -0.6081, 0.0, -0.7938, -0.6081, 0.0, -0.7938, -0.5022, 0.0, -0.8647, -0.5022, 0.0, -0.8647, -0.3868, 0.0, -0.9222, -0.3868, 0.0, -0.9222, -0.263, 0.0, -0.9648, -0.263, 0.0, -0.9648, -0.1331, 0.0, -0.9911, -0.1331, 0.0, -0.9911, -0.0196, 0.0, -0.9998, -0.0196, 0.0, -0.9998, 0.0551, 0.0, -0.9985, 0.0551, 0.0, -0.9985, 0.1099, 0.0, -0.9939, 0.1099, 0.0, -0.9939, 0.1641, 0.0, -0.9864, 0.1641, 0.0, -0.9864, 0.2174, 0.0, -0.9761, 0.2174, 0.0, -0.9761, 0.2696, 0.0, -0.963, 0.2696, 0.0, -0.963, 0.3206, 0.0, -0.9472, 0.3206, 0.0, -0.9472, 0.3702, 0.0, -0.929, 0.3702, 0.0, -0.929, 0.4183, 0.0, -0.9083, 0.4183, 0.0, -0.9083, 0.4648, 0.0, -0.8854, 0.4648, 0.0, -0.8854, 0.5097, 0.0, -0.8603, 0.5097, 0.0, -0.8603, 0.5529, 0.0, -0.8332, 0.5529, 0.0, -0.8332, -0.4616, 0.0, -0.8871, -0.4616, 0.0, -0.8871, -0.7071, 0.0, 0.7071, -0.7071, 0.0, 0.7071, -0.7071, 0.0, 0.7071, -0.7071, 0.0, 0.7071, -0.7071, 0.0, -0.7071, -0.7071, 0.0, -0.7071, 0.7071, 0.0, -0.7071, 0.7071, 0.0, -0.7071, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, -0.9899, 0.0, 0.1418, -0.9899, 0.0, 0.1418, -0.9899, 0.0, 0.1418, -0.9899, 0.0, 0.1418, -0.9624, 0.0, 0.2716, -0.9624, 0.0, 0.2716, -0.9187, 0.0, 0.3949, -0.9187, 0.0, 0.3949, -0.8603, 0.0, 0.5099, -0.8603, 0.0, 0.5099, -0.7884, 0.0, 0.6152, -0.7884, 0.0, 0.6152, -0.7043, 0.0, 0.7099, -0.7043, 0.0, 0.7099, -0.6089, 0.0, 0.7933, -0.6089, 0.0, 0.7933, -0.5029, 0.0, 0.8644, -0.5029, 0.0, 0.8644, -0.3873, 0.0, 0.922, -0.3873, 0.0, 0.922, -0.2634, 0.0, 0.9647, -0.2634, 0.0, 0.9647, -0.1333, 0.0, 0.9911, -0.1333, 0.0, 0.9911, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.1333, 0.0, 0.9911, 0.1333, 0.0, 0.9911, 0.2634, 0.0, 0.9647, 0.2634, 0.0, 0.9647, 0.3873, 0.0, 0.922, 0.3873, 0.0, 0.922, 0.5029, 0.0, 0.8644, 0.5029, 0.0, 0.8644, 0.6089, 0.0, 0.7933, 0.6089, 0.0, 0.7933, 0.7043, 0.0, 0.7099, 0.7043, 0.0, 0.7099, 0.7884, 0.0, 0.6152, 0.7884, 0.0, 0.6152, 0.8603, 0.0, 0.5099, 0.8603, 0.0, 0.5099, 0.9187, 0.0, 0.3949, 0.9187, 0.0, 0.3949, 0.9624, 0.0, 0.2716, 0.9624, 0.0, 0.2716, 0.9899, 0.0, 0.1418, 0.9899, 0.0, 0.1418, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.9899, 0.0, -0.1418, 0.9899, 0.0, -0.1418, 0.9624, 0.0, -0.2716, 0.9624, 0.0, -0.2716, 0.9187, 0.0, -0.3949, 0.9187, 0.0, -0.3949, 0.8603, 0.0, -0.5099, 0.8603, 0.0, -0.5099, 0.7884, 0.0, -0.6152, 0.7884, 0.0, -0.6152, 0.7043, 0.0, -0.7099, 0.7043, 0.0, -0.7099, 0.6089, 0.0, -0.7933, 0.6089, 0.0, -0.7933, 0.5029, 0.0, -0.8644, 0.5029, 0.0, -0.8644, 0.3873, 0.0, -0.922, 0.3873, 0.0, -0.922, 0.2634, 0.0, -0.9647, 0.2634, 0.0, -0.9647, 0.1333, 0.0, -0.9911, 0.1333, 0.0, -0.9911, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, -0.1333, 0.0, -0.9911, -0.1333, 0.0, -0.9911, -0.2634, 0.0, -0.9647, -0.2634, 0.0, -0.9647, -0.3873, 0.0, -0.922, -0.3873, 0.0, -0.922, -0.5029, 0.0, -0.8644, -0.5029, 0.0, -0.8644, -0.6089, 0.0, -0.7933, -0.6089, 0.0, -0.7933, -0.7043, 0.0, -0.7099, -0.7043, 0.0, -0.7099, -0.7884, 0.0, -0.6152, -0.7884, 0.0, -0.6152, -0.8603, 0.0, -0.5099, -0.8603, 0.0, -0.5099, -0.9187, 0.0, -0.3949, -0.9187, 0.0, -0.3949, -0.9624, 0.0, -0.2716, -0.9624, 0.0, -0.2716, -0.9899, 0.0, -0.1418, -0.9899, 0.0, -0.1418, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0], "indices": [133, 135, 134, 133, 136, 135, 133, 137, 136, 133, 138, 137, 133, 132, 138, 132, 139, 138, 131, 139, 132, 131, 140, 139, 131, 141, 140, 131, 142, 141, 118, 120, 119, 118, 121, 120, 118, 122, 121, 117, 122, 118, 117, 123, 122, 117, 124, 123, 116, 124, 117, 116, 125, 124, 116, 126, 125, 116, 127, 126, 115, 127, 116, 115, 128, 127, 115, 129, 128, 114, 129, 115, 114, 130, 129, 114, 131, 130, 131, 143, 142, 114, 143, 131, 113, 143, 114, 112, 143, 113, 111, 160, 112, 160, 159, 112, 159, 143, 112, 158, 143, 159, 111, 161, 160, 157, 143, 158, 157, 144, 143, 111, 162, 161, 156, 144, 157, 111, 163, 162, 155, 144, 156, 111, 164, 163, 154, 144, 155, 110, 164, 111, 110, 165, 164, 153, 144, 154, 110, 166, 165, 152, 144, 153, 109, 166, 110, 109, 167, 166, 151, 144, 152, 151, 145, 144, 109, 168, 167, 150, 145, 151, 108, 168, 109, 108, 169, 168, 149, 145, 150, 149, 146, 145, 108, 170, 169, 148, 146, 149, 107, 170, 108, 107, 171, 170, 195, 146, 148, 195, 147, 146, 195, 0, 147, 106, 171, 107, 105, 171, 106, 195, 1, 0, 104, 171, 105, 195, 2, 1, 103, 171, 104, 195, 3, 2, 102, 171, 103, 195, 4, 3, 101, 171, 102, 195, 5, 4, 100, 171, 101, 195, 6, 5, 195, 7, 6, 99, 171, 100, 195, 8, 7, 98, 171, 99, 195, 9, 8, 97, 171, 98, 195, 10, 9, 96, 171, 97, 195, 11, 10, 95, 171, 96, 95, 172, 171, 194, 11, 195, 194, 12, 11, 94, 172, 95, 194, 13, 12, 93, 172, 94, 194, 14, 13, 92, 172, 93, 194, 15, 14, 91, 172, 92, 194, 16, 15, 90, 172, 91, 89, 172, 90, 194, 17, 16, 88, 172, 89, 194, 18, 17, 87, 172, 88, 194, 19, 18, 86, 172, 87, 194, 20, 19, 85, 172, 86, 194, 21, 20, 84, 172, 85, 194, 22, 21, 194, 23, 22, 83, 172, 84, 82, 172, 83, 82, 173, 172, 193, 23, 194, 193, 24, 23, 82, 174, 173, 192, 24, 193, 81, 174, 82, 81, 175, 174, 191, 24, 192, 191, 25, 24, 81, 176, 175, 190, 25, 191, 80, 176, 81, 80, 177, 176, 189, 25, 190, 189, 26, 25, 80, 178, 177, 188, 26, 189, 80, 179, 178, 187, 26, 188, 187, 27, 26, 80, 180, 179, 186, 27, 187, 80, 181, 180, 185, 27, 186, 80, 182, 181, 184, 27, 185, 79, 182, 80, 79, 183, 182, 183, 27, 184, 79, 27, 183, 79, 28, 27, 79, 46, 28, 46, 29, 28, 46, 30, 29, 79, 47, 46, 45, 30, 46, 78, 47, 79, 44, 30, 45, 43, 30, 44, 43, 31, 30, 42, 31, 43, 41, 31, 42, 41, 32, 31, 40, 32, 41, 39, 32, 40, 38, 32, 39, 38, 33, 32, 37, 33, 38, 36, 33, 37, 36, 34, 33, 35, 34, 36, 77, 47, 78, 76, 47, 77, 75, 47, 76, 75, 48, 47, 75, 49, 48, 75, 50, 49, 75, 51, 50, 75, 52, 51, 75, 53, 52, 75, 54, 53, 75, 55, 54, 75, 56, 55, 75, 57, 56, 75, 58, 57, 75, 59, 58, 75, 60, 59, 75, 61, 60, 74, 61, 75, 74, 62, 61, 74, 63, 62, 74, 64, 63, 74, 65, 64, 74, 66, 65, 73, 66, 74, 73, 67, 66, 73, 68, 67, 73, 69, 68, 72, 69, 73, 72, 70, 69, 72, 71, 70, 329, 330, 331, 329, 331, 332, 329, 332, 333, 329, 333, 334, 329, 334, 328, 328, 334, 335, 327, 328, 335, 327, 335, 336, 327, 336, 337, 327, 337, 338, 314, 315, 316, 314, 316, 317, 314, 317, 318, 313, 314, 318, 313, 318, 319, 313, 319, 320, 312, 313, 320, 312, 320, 321, 312, 321, 322, 312, 322, 323, 311, 312, 323, 311, 323, 324, 311, 324, 325, 310, 311, 325, 310, 325, 326, 310, 326, 327, 327, 338, 339, 310, 327, 339, 309, 310, 339, 308, 309, 339, 307, 308, 356, 356, 308, 355, 355, 308, 339, 354, 355, 339, 307, 356, 357, 353, 354, 339, 353, 339, 340, 307, 357, 358, 352, 353, 340, 307, 358, 359, 351, 352, 340, 307, 359, 360, 350, 351, 340, 306, 307, 360, 306, 360, 361, 349, 350, 340, 306, 361, 362, 348, 349, 340, 305, 306, 362, 305, 362, 363, 347, 348, 340, 347, 340, 341, 305, 363, 364, 346, 347, 341, 304, 305, 364, 304, 364, 365, 345, 346, 341, 345, 341, 342, 304, 365, 366, 344, 345, 342, 303, 304, 366, 303, 366, 367, 391, 344, 342, 391, 342, 343, 391, 343, 196, 302, 303, 367, 301, 302, 367, 391, 196, 197, 300, 301, 367, 391, 197, 198, 299, 300, 367, 391, 198, 199, 298, 299, 367, 391, 199, 200, 297, 298, 367, 391, 200, 201, 296, 297, 367, 391, 201, 202, 391, 202, 203, 295, 296, 367, 391, 203, 204, 294, 295, 367, 391, 204, 205, 293, 294, 367, 391, 205, 206, 292, 293, 367, 391, 206, 207, 291, 292, 367, 291, 367, 368, 390, 391, 207, 390, 207, 208, 290, 291, 368, 390, 208, 209, 289, 290, 368, 390, 209, 210, 288, 289, 368, 390, 210, 211, 287, 288, 368, 390, 211, 212, 286, 287, 368, 285, 286, 368, 390, 212, 213, 284, 285, 368, 390, 213, 214, 283, 284, 368, 390, 214, 215, 282, 283, 368, 390, 215, 216, 281, 282, 368, 390, 216, 217, 280, 281, 368, 390, 217, 218, 390, 218, 219, 279, 280, 368, 278, 279, 368, 278, 368, 369, 389, 390, 219, 389, 219, 220, 278, 369, 370, 388, 389, 220, 277, 278, 370, 277, 370, 371, 387, 388, 220, 387, 220, 221, 277, 371, 372, 386, 387, 221, 276, 277, 372, 276, 372, 373, 385, 386, 221, 385, 221, 222, 276, 373, 374, 384, 385, 222, 276, 374, 375, 383, 384, 222, 383, 222, 223, 276, 375, 376, 382, 383, 223, 276, 376, 377, 381, 382, 223, 276, 377, 378, 380, 381, 223, 275, 276, 378, 275, 378, 379, 379, 380, 223, 275, 379, 223, 275, 223, 224, 275, 224, 242, 242, 224, 225, 242, 225, 226, 275, 242, 243, 241, 242, 226, 274, 275, 243, 240, 241, 226, 239, 240, 226, 239, 226, 227, 238, 239, 227, 237, 238, 227, 237, 227, 228, 236, 237, 228, 235, 236, 228, 234, 235, 228, 234, 228, 229, 233, 234, 229, 232, 233, 229, 232, 229, 230, 231, 232, 230, 273, 274, 243, 272, 273, 243, 271, 272, 243, 271, 243, 244, 271, 244, 245, 271, 245, 246, 271, 246, 247, 271, 247, 248, 271, 248, 249, 271, 249, 250, 271, 250, 251, 271, 251, 252, 271, 252, 253, 271, 253, 254, 271, 254, 255, 271, 255, 256, 271, 256, 257, 270, 271, 257, 270, 257, 258, 270, 258, 259, 270, 259, 260, 270, 260, 261, 270, 261, 262, 269, 270, 262, 269, 262, 263, 269, 263, 264, 269, 264, 265, 268, 269, 265, 268, 265, 266, 268, 266, 267, 394, 397, 396, 394, 396, 392, 397, 399, 398, 397, 398, 396, 399, 401, 400, 399, 400, 398, 401, 403, 402, 401, 402, 400, 403, 405, 404, 403, 404, 402, 405, 407, 406, 405, 406, 404, 407, 409, 408, 407, 408, 406, 409, 411, 410, 409, 410, 408, 411, 413, 412, 411, 412, 410, 413, 415, 414, 413, 414, 412, 415, 417, 416, 415, 416, 414, 417, 419, 418, 417, 418, 416, 419, 421, 420, 419, 420, 418, 421, 423, 422, 421, 422, 420, 423, 425, 424, 423, 424, 422, 425, 427, 426, 425, 426, 424, 427, 429, 428, 427, 428, 426, 429, 431, 430, 429, 430, 428, 431, 433, 432, 431, 432, 430, 433, 435, 434, 433, 434, 432, 435, 437, 436, 435, 436, 434, 437, 439, 438, 437, 438, 436, 439, 441, 440, 439, 440, 438, 441, 443, 442, 441, 442, 440, 443, 445, 444, 443, 444, 442, 445, 447, 446, 445, 446, 444, 447, 449, 448, 447, 448, 446, 449, 451, 450, 449, 450, 448, 451, 453, 452, 451, 452, 450, 453, 455, 454, 453, 454, 452, 455, 457, 456, 455, 456, 454, 457, 459, 458, 457, 458, 456, 459, 461, 460, 459, 460, 458, 461, 463, 462, 461, 462, 460, 463, 465, 464, 463, 464, 462, 465, 467, 466, 465, 466, 464, 467, 469, 468, 467, 468, 466, 469, 471, 470, 469, 470, 468, 471, 473, 472, 471, 472, 470, 473, 475, 474, 473, 474, 472, 475, 477, 476, 475, 476, 474, 477, 479, 478, 477, 478, 476, 479, 481, 480, 479, 480, 478, 481, 483, 482, 481, 482, 480, 483, 485, 484, 483, 484, 482, 485, 487, 486, 485, 486, 484, 487, 489, 488, 487, 488, 486, 489, 491, 490, 489, 490, 488, 491, 493, 492, 491, 492, 490, 493, 495, 494, 493, 494, 492, 495, 497, 496, 495, 496, 494, 497, 499, 498, 497, 498, 496, 499, 501, 500, 499, 500, 498, 501, 503, 502, 501, 502, 500, 503, 505, 504, 503, 504, 502, 505, 507, 506, 505, 506, 504, 507, 509, 508, 507, 508, 506, 509, 511, 510, 509, 510, 508, 511, 513, 512, 511, 512, 510, 513, 515, 514, 513, 514, 512, 515, 517, 516, 515, 516, 514, 517, 519, 518, 517, 518, 516, 519, 521, 520, 519, 520, 518, 521, 523, 522, 521, 522, 520, 523, 525, 524, 523, 524, 522, 525, 527, 526, 525, 526, 524, 527, 529, 528, 527, 528, 526, 529, 531, 530, 529, 530, 528, 531, 533, 532, 531, 532, 530, 533, 535, 534, 533, 534, 532, 535, 537, 536, 535, 536, 534, 537, 539, 538, 537, 538, 536, 539, 541, 540, 539, 540, 538, 541, 543, 542, 541, 542, 540, 543, 545, 544, 543, 544, 542, 545, 547, 546, 545, 546, 544, 547, 549, 548, 547, 548, 546, 549, 551, 550, 549, 550, 548, 551, 553, 552, 551, 552, 550, 553, 555, 554, 553, 554, 552, 555, 557, 556, 555, 556, 554, 557, 559, 558, 557, 558, 556, 559, 561, 560, 559, 560, 558, 561, 563, 562, 561, 562, 560, 563, 565, 564, 563, 564, 562, 565, 567, 566, 565, 566, 564, 567, 569, 568, 567, 568, 566, 569, 571, 570, 569, 570, 568, 571, 573, 572, 571, 572, 570, 573, 575, 574, 573, 574, 572, 575, 577, 576, 575, 576, 574, 577, 579, 578, 577, 578, 576, 579, 581, 580, 579, 580, 578, 581, 583, 582, 581, 582, 580, 583, 585, 584, 583, 584, 582, 585, 587, 586, 585, 586, 584, 587, 589, 588, 587, 588, 586, 589, 591, 590, 589, 590, 588, 591, 593, 592, 591, 592, 590, 593, 595, 594, 593, 594, 592, 595, 597, 596, 595, 596, 594, 597, 599, 598, 597, 598, 596, 599, 601, 600, 599, 600, 598, 601, 603, 602, 601, 602, 600, 603, 605, 604, 603, 604, 602, 605, 607, 606, 605, 606, 604, 607, 609, 608, 607, 608, 606, 609, 611, 610, 609, 610, 608, 611, 613, 612, 611, 612, 610, 613, 615, 614, 613, 614, 612, 615, 617, 616, 615, 616, 614, 617, 619, 618, 617, 618, 616, 619, 621, 620, 619, 620, 618, 621, 623, 622, 621, 622, 620, 623, 625, 624, 623, 624, 622, 625, 627, 626, 625, 626, 624, 627, 629, 628, 627, 628, 626, 629, 631, 630, 629, 630, 628, 631, 633, 632, 631, 632, 630, 633, 635, 634, 633, 634, 632, 635, 637, 636, 635, 636, 634, 637, 639, 638, 637, 638, 636, 639, 641, 640, 639, 640, 638, 641, 643, 642, 641, 642, 640, 643, 645, 644, 643, 644, 642, 645, 647, 646, 645, 646, 644, 647, 649, 648, 647, 648, 646, 649, 651, 650, 649, 650, 648, 651, 653, 652, 651, 652, 650, 653, 655, 654, 653, 654, 652, 655, 657, 656, 655, 656, 654, 657, 659, 658, 657, 658, 656, 659, 661, 660, 659, 660, 658, 661, 663, 662, 661, 662, 660, 663, 665, 664, 663, 664, 662, 665, 667, 666, 665, 666, 664, 667, 669, 668, 667, 668, 666, 669, 671, 670, 669, 670, 668, 671, 673, 672, 671, 672, 670, 673, 675, 674, 673, 674, 672, 675, 677, 676, 675, 676, 674, 677, 679, 678, 677, 678, 676, 679, 681, 680, 679, 680, 678, 681, 683, 682, 681, 682, 680, 683, 685, 684, 683, 684, 682, 685, 687, 686, 685, 686, 684, 687, 689, 688, 687, 688, 686, 689, 395, 393, 689, 393, 688, 692, 695, 694, 692, 694, 690, 695, 697, 696, 695, 696, 694, 697, 699, 698, 697, 698, 696, 699, 701, 700, 699, 700, 698, 701, 703, 702, 701, 702, 700, 703, 705, 704, 703, 704, 702, 705, 707, 706, 705, 706, 704, 707, 709, 708, 707, 708, 706, 709, 711, 710, 709, 710, 708, 711, 713, 712, 711, 712, 710, 713, 715, 714, 713, 714, 712, 715, 717, 716, 715, 716, 714, 717, 719, 718, 717, 718, 716, 719, 721, 720, 719, 720, 718, 721, 723, 722, 721, 722, 720, 723, 725, 724, 723, 724, 722, 725, 727, 726, 725, 726, 724, 727, 729, 728, 727, 728, 726, 729, 731, 730, 729, 730, 728, 731, 733, 732, 731, 732, 730, 733, 735, 734, 733, 734, 732, 735, 737, 736, 735, 736, 734, 737, 739, 738, 737, 738, 736, 739, 741, 740, 739, 740, 738, 741, 743, 742, 741, 742, 740, 743, 745, 744, 743, 744, 742, 745, 747, 746, 745, 746, 744, 747, 749, 748, 747, 748, 746, 749, 751, 750, 749, 750, 748, 751, 753, 752, 751, 752, 750, 753, 755, 754, 753, 754, 752, 755, 757, 756, 755, 756, 754, 757, 759, 758, 757, 758, 756, 759, 761, 760, 759, 760, 758, 761, 763, 762, 761, 762, 760, 763, 765, 764, 763, 764, 762, 765, 767, 766, 765, 766, 764, 767, 769, 768, 767, 768, 766, 769, 771, 770, 769, 770, 768, 771, 773, 772, 771, 772, 770, 773, 775, 774, 773, 774, 772, 775, 777, 776, 775, 776, 774, 777, 779, 778, 777, 778, 776, 779, 781, 780, 779, 780, 778, 781, 783, 782, 781, 782, 780, 783, 785, 784, 783, 784, 782, 785, 787, 786, 785, 786, 784, 787, 693, 691, 787, 691, 786]};
+</script>
+<script>
+/* ===================== data ===================== */
+const FRIEND_NAMES = ['전지현', '박상음', '김태협', '김도영', '이주연'];
+
+const RAW_ENTRIES = [
+  { title: '잠이 옵니다.', date: '26.09.08', script: '오늘 낮에 카페에 앉아있는데 햇볕이 너무 따뜻해서 자꾸 눈이 감기더라. 옆 테이블 사람들 떠드는 소리 들으면서 꾸벅꾸벅 졸았어.' },
+  { title: '개짓는 소리 좀', date: '26.09.08', script: '옆집 강아지가 아까부터 계속 짖어대는데 뭐 때문인지 모르겠어. 창문 너머로 들리는 소리가 은근 리듬감 있어서 녹음해봤어.' },
+  { title: '안나게 하라!!', date: '26.09.08', script: '(장난스럽게) 아니 진짜 조용히 좀 하라고! 근데 웃긴 게 이거 녹음하면서도 나 계속 웃고 있었음.' },
+  { title: '강조되고 반복되는', date: '26.08.21', script: '길 가다가 광고 트럭이 지나가는데 똑같은 문구를 계속 반복하더라. 강조하고 싶은 마음은 알겠는데 열 번은 너무했지.' },
+  { title: '소리는 강아지를', date: '26.08.21', script: '동네 놀이터에서 애들이 뛰어노는 소리랑 강아지 뛰어다니는 소리가 겹쳐서 되게 정신없고 활기찬 배경음이 됐어.' },
+  { title: '불안하게 해요', date: '26.08.21', script: '천둥소리가 멀리서 들려서 조금 무서웠는데, 그 와중에 이걸 녹음하고 있는 내가 웃김. 잼으로 남겨두고 싶었어.' },
+  { title: '강조되고 반복되는 소리는', date: '26.08.10', script: '지하철 안내방송이 세 번이나 똑같은 역을 반복해서 알려주더라. 오늘따라 유난히 친절했던 하루.' },
+  { title: '강아지를 불안하게 한다구요', date: '26.08.05', script: '불꽃놀이 소리 때문에 우리 집 강아지가 계속 낑낑거려서 안아주면서 달래던 순간을 그냥 남겨봤어.' },
+  { title: '멍멍멍멍!!!', date: '26.08.05', script: '산책 나갔다가 다른 강아지랑 마주쳐서 둘이 신나게 짖던 소리. 듣기만 해도 웃음이 난다.' },
+  { title: '휴학을 했는데', date: '26.08.05', script: '오랜만에 만난 친구한테 휴학 소식 전했는데 반응이 예상보다 격했음. 그 리액션이 너무 웃겨서 몰래 녹음함.' },
+  { title: '왜 학교를 맨날 가는 거', date: '26.07.28', script: '동생이 등굣길에 투덜대는 걸 그대로 녹음해봤어. 몇 년 지나면 이것도 추억이겠지.' },
+  { title: '같은지 정말 모르겠구나', date: '26.07.24', script: '친구랑 취향 얘기하다가 도저히 의견이 안 좁혀져서 둘 다 어이없어하며 웃었던 대화.' },
+  { title: '잠이 온다.', date: '26.07.22', script: '스터디카페에서 백색소음 들으면서 공부하다가 결국 졸았던 순간의 기록. 부끄럽지만 남겨둔다.' },
+  { title: '잠온다와 졸려의 차이', date: '26.07.18', script: '친구랑 사소한 단어 뉘앙스 차이로 진지하게 토론했던 대화. 지금 들어보면 되게 웃김.' },
+  { title: '아기 공룡 둘리', date: '26.07.17', script: '옛날 만화 주제가를 흥얼거리다가 친구까지 따라 부르게 만든 순간. 즉흥 떼창이 됐다.' },
+  { title: '빙하타고 내려와', date: '26.07.03', script: '여름 계곡에서 튜브 타고 내려오면서 다 같이 소리 지르던 순간. 시원했던 그날의 공기까지 담겨있는 것 같아.' },
+  { title: '친구 만났지만', date: '26.05.25', script: '오랜만에 만난 친구랑 할 말이 너무 많아서 인사도 제대로 못하고 바로 수다 시작했던 순간.' },
+  { title: '1억년 전 옛날이', date: '26.05.25', script: '할머니가 옛날 얘기 시작하시길래 슬쩍 녹음해뒀어. 몇 번을 들어도 새로운 디테일이 나온다.' },
+  { title: '너무나 그리워 보고픈 엄마 이야기', date: '26.05.25', script: '엄마가 옛날 사진 보면서 옛날 얘기해주시던 목소리. 이건 오래오래 간직하고 싶은 잼.' },
+];
+
+const THREAD_PLAN = {
+  0: [{ friend: '민서', response: '야 이거 레전드다 ㅋㅋㅋ' }, { friend: '태오', response: null }],
+  4: [{ friend: '수아', response: '이 순간 진짜 좋았음' }, { friend: '지현', response: '나도 그 자리에 있었어야 했는데' }],
+  9: [{ friend: '라온', response: null }],
+  15: [{ friend: '민서', response: '와 이 소리 듣자마자 그날 기억났어' }],
+};
+
+const ENTRIES = RAW_ENTRIES.map((e, i) => ({
+  id: 'e' + i,
+  title: e.title,
+  date: e.date,
+  script: e.script,
+  responses: THREAD_PLAN[i] || [],
+}));
+
+// Fixed page size (10 rows) — this used to be computed from the sidebar's
+// available height, back when .jam-list-rows was flex:1 and stretched to
+// fill the panel. Now that the list hugs its own content (so the footer sits
+// right under it instead of at the bottom of the panel), that height-based
+// math no longer has a stable "available space" to measure — so it's a
+// plain fixed count instead, same pattern as FRIENDS_PAGE_SIZE below.
+const ARCHIVE_PAGE_SIZE = 10;
+function archivePageSize() {
+  return ARCHIVE_PAGE_SIZE;
+}
+const ARCHIVE_STORAGE = { entries: ENTRIES.slice() };
+
+/* ===================== auth / state ===================== */
+const AUTH_STORAGE_KEY = 'jamAuth';
+let savedAuth = null;
+try {
+  savedAuth = JSON.parse(sessionStorage.getItem(AUTH_STORAGE_KEY) || 'null');
+} catch (_) {
+  savedAuth = null;
+}
+let loggedIn = !!(savedAuth && savedAuth.loggedIn && savedAuth.userId);
+let currentUserId = loggedIn ? savedAuth.userId : null;
+let archivePage = 1;
+let searchQuery = '';
+let selectedId = null;
+let selectedResponseIdx = null;
+
+const $ = (id) => document.getElementById(id);
+const archiveListEl = $('archiveList');
+const archivePaginationEl = $('archivePagination');
+const infoPanel = $('infoPanel');
+const sharePanel = $('sharePanel');
+const toastEl = $('toast');
+
+function showToast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => toastEl.classList.remove('show'), 1800);
+}
+
+/* ===================== archive list (left) ===================== */
+function filteredEntries() {
+  const q = searchQuery.trim();
+  if (!q) return ARCHIVE_STORAGE.entries;
+  return ARCHIVE_STORAGE.entries.filter(e => e.title.includes(q));
+}
+
+function renderArchiveList() {
+  archiveListEl.innerHTML = '';
+  if (!loggedIn) {
+    const p = document.createElement('p');
+    p.className = 'archive-locked';
+    p.textContent = '로그인하면 아카이빙된 잼들을 볼 수 있어요';
+    archiveListEl.appendChild(p);
+    archivePaginationEl.innerHTML = '';
+    return;
+  }
+
+  const list = filteredEntries();
+  const pageSize = archivePageSize();
+  const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
+  if (archivePage > totalPages) archivePage = totalPages;
+  const start = (archivePage - 1) * pageSize;
+  const pageItems = list.slice(start, start + pageSize);
+
+  pageItems.forEach(entry => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'jam-list-row' + (entry.id === selectedId ? ' active' : '');
+    btn.innerHTML = `<span class="jam-list-title"></span><span class="jam-list-date"></span>`;
+    btn.querySelector('.jam-list-title').textContent = entry.title;
+    btn.querySelector('.jam-list-date').textContent = entry.date;
+    btn.addEventListener('click', () => {
+      focusEntry(entry.id, true);
+    });
+
+    // "공유" — shares this jam directly from the list row without having to
+    // open its script first. There used to be a second, differently-styled
+    // picker for this (turning the FRIENDS panel itself into a share target
+    // list) — now this just focuses the jam on stage and opens the exact
+    // same SHARE card the stage's own script window uses, so there's one
+    // consistent share UI instead of two.
+    const shareBtn = document.createElement('button');
+    shareBtn.type = 'button';
+    shareBtn.className = 'jam-list-share';
+    shareBtn.textContent = '공유';
+    shareBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      focusEntry(entry.id, true);
+      openSharePanel(entry.id);
+    });
+    btn.appendChild(shareBtn);
+
+    archiveListEl.appendChild(btn);
+  });
+
+  // archivePaginationEl is a fixed sibling AFTER archive-list (not nested
+  // inside it) — its screen position never moves just because a page
+  // happens to render fewer rows (e.g. a half-full last page). Plain page
+  // numbers only (no ‹/› arrows) — matches the Figma reference (node 48:661).
+  archivePaginationEl.innerHTML = '';
+  if (totalPages > 1) {
+    const goTo = (p) => { archivePage = Math.min(totalPages, Math.max(1, p)); renderArchiveList(); rebuildStagePage(); };
+    paginationRange(archivePage, totalPages).forEach(item => {
+      if (item === '...') {
+        const dots = document.createElement('span');
+        dots.className = 'page-dots';
+        dots.textContent = '···';
+        archivePaginationEl.appendChild(dots);
+        return;
+      }
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = String(item);
+      b.classList.toggle('current', item === archivePage);
+      b.addEventListener('click', () => goTo(item));
+      archivePaginationEl.appendChild(b);
+    });
+  }
+}
+
+// Compresses a long page list into e.g. [1, 2, 3, '...', 18] — always keeps
+// the first/last page and a small window around the current page, matching
+// the Figma pagination reference (node 38:865).
+function paginationRange(current, total) {
+  const delta = 2;
+  const range = [];
+  for (let i = 1; i <= total; i++) {
+    if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) range.push(i);
+  }
+  const withDots = [];
+  let last = null;
+  range.forEach(i => {
+    if (last !== null) {
+      if (i - last === 2) withDots.push(last + 1);
+      else if (i - last > 1) withDots.push('...');
+    }
+    withDots.push(i);
+    last = i;
+  });
+  return withDots;
+}
+
+$('searchInput').addEventListener('input', (e) => {
+  searchQuery = e.target.value;
+  archivePage = 1;
+  renderArchiveList();
+  rebuildStagePage();
+});
+
+/* ===================== auth ===================== */
+function updateAuthUI() {
+  if (!loggedIn) {
+    deselectEntry();
+    openOverlay('list', { bypassGate: true });
+  }
+  renderArchiveList();
+  rebuildStagePage();
+}
+
+// Shared login logic — called from both the archive screen's own login card
+// and the home screen's login modal, so the two stay in sync.
+function attemptLogin(id, pw) {
+  if (!id || !pw) return false;
+  loggedIn = true;
+  currentUserId = id;
+  try {
+    sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ loggedIn: true, userId: id }));
+  } catch (_) {}
+  document.querySelectorAll('.js-nav-login-label').forEach(el => { el.textContent = 'MYPAGE'; });
+  updateAuthUI();
+  renderIncomingShares();
+  showToast('로그인 완료 — 잼들을 불러왔어요');
+  return true;
+}
+
+$('loginSubmit').addEventListener('click', () => {
+  if (loggedIn) { logout(); return; }
+  const id = $('loginId').value.trim(), pw = $('loginPw').value.trim();
+  if (!attemptLogin(id, pw)) { $('loginError').style.display = 'block'; return; }
+  $('loginError').style.display = 'none';
+  openOverlay('list');
+});
+
+function logout() {
+  loggedIn = false;
+  currentUserId = null;
+  try {
+    sessionStorage.removeItem(AUTH_STORAGE_KEY);
+  } catch (_) {}
+  document.querySelectorAll('.js-nav-login-label').forEach(el => { el.textContent = 'LOGIN'; });
+  $('loginId').value = ''; $('loginPw').value = '';
+  renderIncomingShares(); // clears the unread-count badge — placed before updateAuthUI() so it always
+                          // runs even if that call throws partway through (e.g. mid-transition stage state)
+  updateAuthUI(); // switches the right panel back to the JAM list (its own locked message covers "logged out")
+}
+
+/* ===================== overlays (right-side jam panel) ===================== */
+// The right panel shows exactly one of these views at a time. 'account' is
+// the "MY INFO + 로그아웃" panel shown instead of the login form once you're
+// already logged in (see the navLogin handler below). 'list' is the JAM
+// list — formerly an always-visible left sidebar, now one of the panel's
+// views and its resting/default one. It USED to be exempt from the "must be
+// logged in" redirect (showing its own locked message instead), but a nav
+// click into it while logged out now redirects to LOGIN just like every
+// other nav item — see openOverlay() below. The locked message still shows
+// up passively (initial load / right after logout) via the bypassGate reset
+// in updateAuthUI(), which is not a nav click and should stay quiet.
+const overlays = { login: $('loginCard'), account: $('accountCard'), friends: $('friendsCard'), list: $('jamListView'), upload: $('objectCard') };
+const NAV_IDS = ['navLogin', 'navFriends', 'navJam', 'navUpload'];
+function closeAllOverlays() {
+  Object.values(overlays).forEach(o => o.classList.remove('active'));
+  NAV_IDS.forEach(id => { const el = $(id); if (el) el.classList.remove('active'); });
+}
+function openOverlay(name, opts = {}) {
+  // JAM list used to be exempt from the login gate (it showed its own
+  // "archive-locked" message instead) — now every nav item behaves the
+  // same way while logged out: clicking any of them (JAM included, from
+  // either nav bar) opens LOGIN instead. `opts.bypassGate` is for internal,
+  // non-click resets (initial load, right after logout) that just want to
+  // rest on the JAM list's own "locked" message — not pop the login form
+  // and a toast on top of a screen the user didn't just click into.
+  const exempt = name === 'login' || name === 'account' || opts.bypassGate;
+  if (!exempt && !loggedIn) { openOverlay('login', { forced: true }); showToast('로그인이 필요해요'); return; }
+  // Clicking the nav for the panel that's already open returns to the JAM
+  // list (the resting view) instead of leaving the panel blank — there's no
+  // "outside" to click to dismiss it now that it's a fixed half of the
+  // screen, not a floating card. `opts.forced` (set only by the gate redirect
+  // just above) skips this: without it, redirecting to LOGIN while the user
+  // was already sitting on the login screen would read as "login is already
+  // open" and toggle away to the JAM list instead of just staying on LOGIN —
+  // which is exactly the bug where clicking UPLOAD/JAM while logged out (and
+  // already on the login screen) landed back on the JAM archive instead.
+  const isOpen = !opts.forced && overlays[name].classList.contains('active');
+  const target = (isOpen && name !== 'list') ? 'list' : name;
+  closeAllOverlays();
+  overlays[target].classList.add('active');
+  // 'account' shares the LOGIN/LOGOUT nav button; 'list' shares the JAM nav button.
+  const navId = target === 'account' ? 'navLogin' : target === 'list' ? 'navJam' : 'nav' + target.charAt(0).toUpperCase() + target.slice(1);
+  const navEl = $(navId);
+  if (navEl) navEl.classList.add('active');
+  if (target === 'account') renderAccountPanel();
+  if (target === 'friends') renderFriends();
+  if (target === 'upload') renderObjectList();
+  if (target === 'list') renderArchiveList();
+}
+// Already logged in → LOGIN/LOGOUT opens the "MY INFO" panel, not the ID/PW
+// form (that form has nothing to do once you're signed in).
+$('navLogin').addEventListener('click', () => openOverlay(loggedIn ? 'account' : 'login'));
+// Opening FRIENDS from its own nav button always clears any in-progress
+// share (the stage's SHARE card, if left open, closes with it) — FRIENDS
+// itself is just the friend list now, never a share destination.
+$('navFriends').addEventListener('click', () => {
+  shareTargetEntryId = null;
+  sharePanel.classList.remove('active');
+  openOverlay('friends');
+});
+$('navJam').addEventListener('click', () => openOverlay('list'));
+$('navUpload').addEventListener('click', () => openOverlay('upload'));
+
+/* ===================== friends ===================== */
+let friends = FRIEND_NAMES.map(n => ({ name: n, email: 'wew009@naver.com' }));
+// Set right before opening the friends overlay from a jam's "공유하기" button;
+// turns the friends list into a share-target picker until a friend is picked
+// (or the overlay is closed via the FRIENDS nav, which clears it).
+let shareTargetEntryId = null;
+// Friends list is paginated like the archive sidebar instead of growing
+// forever as more friends get added.
+const FRIENDS_PAGE_SIZE = 10; // matches ARCHIVE_PAGE_SIZE — same panel/pagination pattern, same page size
+let friendsPage = 1;
+// Search box in the footer (same spot/style as the JAM list's) filters by
+// name or email instead of doing nothing — mirrors filteredEntries() below.
+let friendsSearchQuery = '';
+function filteredFriends() {
+  const q = friendsSearchQuery.trim().toLowerCase();
+  if (!q) return friends;
+  return friends.filter(f => f.name.toLowerCase().includes(q) || f.email.toLowerCase().includes(q));
+}
+// Renders into every friends-list container in the page (the archive screen's
+// card and the home screen's overlay both share this one function/state).
+// FRIENDS used to double as a share-target picker (turning into "공유할 친구
+// 선택" mode, disabling already-shared rows, hiding the add-row) whenever a
+// jam's "공유하기" pointed here — that's gone now that sharing has exactly
+// one UI, the stage's own SHARE card (see openSharePanel below). This panel
+// is just the friend list; it used to also show a static, non-functional
+// "잼"/"공유" label on every row — both are gone now, leaving just name/email.
+function renderFriends() {
+  const list0 = filteredFriends();
+  const totalPages = Math.max(1, Math.ceil(list0.length / FRIENDS_PAGE_SIZE));
+  if (friendsPage > totalPages) friendsPage = totalPages;
+  const start = (friendsPage - 1) * FRIENDS_PAGE_SIZE;
+  const pageItems = list0.slice(start, start + FRIENDS_PAGE_SIZE);
+
+  document.querySelectorAll('.js-friends-list').forEach(list => {
+    list.innerHTML = '';
+    pageItems.forEach((f, i) => {
+      const row = document.createElement('div');
+      row.className = 'friend-row';
+      // 번호 → 이름 → 이메일 순 (Figma 57:425 기준). Number is just this
+      // row's position on the current page, not a stored id.
+      const numberSpan = document.createElement('span');
+      numberSpan.className = 'friend-number';
+      numberSpan.textContent = String(start + i + 1);
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'friend-name';
+      nameSpan.textContent = f.name;
+      const emailSpan = document.createElement('span');
+      emailSpan.className = 'friend-email';
+      emailSpan.textContent = f.email;
+      row.appendChild(numberSpan);
+      row.appendChild(nameSpan);
+      row.appendChild(emailSpan);
+      list.appendChild(row);
+    });
+  });
+
+  document.querySelectorAll('.js-friends-pagination').forEach(pag => {
+    pag.innerHTML = '';
+    if (totalPages > 1) {
+      for (let p = 1; p <= totalPages; p++) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = String(p);
+        b.classList.toggle('current', p === friendsPage);
+        b.addEventListener('click', () => { friendsPage = p; renderFriends(); });
+        pag.appendChild(b);
+      }
+    }
+  });
+
+  // Matches the Figma reference (node 48:462: "FRIENDS") rather than the
+  // static markup's English nav-label placeholder.
+  const friendsHeading = document.querySelector('#friendsCard h3');
+  if (friendsHeading) friendsHeading.textContent = 'FRIENDS';
+}
+
+function shareEntryWithFriend(entryId, friendName) {
+  const entry = ARCHIVE_STORAGE.entries.find(e => e.id === entryId);
+  if (!entry) return;
+  entry.responses.push({ friend: friendName, response: null });
+  showToast(friendName + '에게 공유했어요');
+  shareTargetEntryId = null;
+  sharePanel.classList.remove('active');
+  openOverlay('list');
+  buildSelectedChain();
+  if (selectedId === entryId) showInfoForEntry(entryId);
+  renderArchiveList();
+}
+
+/* ===================== account panel / incoming shares ===================== */
+// Jams friends have shared TO the current user (the reverse direction of
+// "공유하기" above, which shares MY jam out to a friend). Lives in the new
+// "MY INFO" panel with an unread badge on the LOGIN/LOGOUT nav button.
+let incomingShares = [
+  { id: 'in0', friend: '민서', title: '기타 연습하다가', date: '26.09.10', script: '요즘 배우는 기타로 연습하다가 녹음해봤어! 들어줘~', myReply: null },
+  { id: 'in1', friend: '태오', title: '비 오는 날 카페', date: '26.09.05', script: '비 오는 소리 들으면서 커피 마시는 중. 힐링된다.', myReply: null },
+];
+
+function renderIncomingShares() {
+  const unread = loggedIn ? incomingShares.filter(n => !n.myReply).length : 0;
+  document.querySelectorAll('.js-incoming-badge').forEach(el => {
+    el.textContent = unread > 0 ? String(unread) : '';
+  });
+  // Figma's "공유받은 잼 N" heading shows the total share count (not just
+  // unread) as plain black text — separate from the small red unread dot
+  // on the nav button above, which stays unread-only.
+  document.querySelectorAll('.js-incoming-count').forEach(el => {
+    el.textContent = String(incomingShares.length);
+  });
+  document.querySelectorAll('.js-incoming-list').forEach(list => {
+    list.innerHTML = '';
+    if (!incomingShares.length) {
+      const empty = document.createElement('p');
+      empty.className = 'incoming-empty';
+      empty.textContent = '아직 친구가 보낸 잼이 없어요';
+      list.appendChild(empty);
+      return;
+    }
+    incomingShares.forEach(n => {
+      const item = document.createElement('div');
+      item.className = 'incoming-item';
+
+      // title + mini audio player, side by side on one row (node 49:226)
+      const row1 = document.createElement('div');
+      row1.className = 'incoming-row1';
+      const title = document.createElement('p');
+      title.className = 'incoming-title';
+      title.textContent = n.title;
+      const player = document.createElement('div');
+      player.className = 'incoming-player';
+      const progress = document.createElement('div');
+      progress.className = 'incoming-progress';
+      const fill = document.createElement('div');
+      fill.className = 'incoming-progress-fill';
+      progress.appendChild(fill);
+      const playBtn = document.createElement('button');
+      playBtn.type = 'button';
+      playBtn.className = 'incoming-play-btn';
+      playBtn.setAttribute('aria-label', '재생');
+      const playIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      playIcon.setAttribute('viewBox', '0 0 24 24');
+      playIcon.setAttribute('fill', 'currentColor');
+      playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+      playBtn.appendChild(playIcon);
+      playBtn.addEventListener('click', () => toggleIncomingPlayback(n, fill, playIcon, playBtn));
+      player.appendChild(progress);
+      player.appendChild(playBtn);
+      row1.appendChild(title);
+      row1.appendChild(player);
+      item.appendChild(row1);
+
+      const from = document.createElement('p');
+      from.className = 'incoming-from';
+      from.textContent = 'From ' + n.friend;
+      item.appendChild(from);
+
+      if (n.myReply) {
+        const replied = document.createElement('p');
+        replied.className = 'incoming-my-reply';
+        replied.textContent = '내 반응: ' + n.myReply;
+        item.appendChild(replied);
+      } else {
+        const form = document.createElement('div');
+        form.className = 'incoming-reply-form';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = '반응 남기기';
+        const sendBtn = document.createElement('button');
+        sendBtn.type = 'button';
+        sendBtn.textContent = '잼';
+        const send = () => {
+          const val = input.value.trim();
+          if (!val) return;
+          n.myReply = val;
+          showToast(n.friend + '에게 반응을 보냈어요');
+          renderIncomingShares();
+        };
+        sendBtn.addEventListener('click', send);
+        input.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
+        form.appendChild(input);
+        form.appendChild(sendBtn);
+        item.appendChild(form);
+      }
+      list.appendChild(item);
+    });
+  });
+}
+
+// One shared jam's play/pause + progress, scoped to its own row instead of
+// the stage's single #infoPlay control — reuses the same speechSynthesis
+// approach as playCurrent()/stopSpeech() below, and stops whichever one of
+// (stage script, another incoming row) was already talking.
+let incomingSpeechState = null;
+function setIncomingPlayIcon(iconEl, playing) {
+  iconEl.innerHTML = playing
+    ? '<rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/>'
+    : '<path d="M8 5v14l11-7z"/>';
+}
+
+function toggleIncomingPlayback(n, fillEl, iconEl, playBtn) {
+  if (incomingSpeechState && incomingSpeechState.n === n) {
+    if (!window.speechSynthesis) return;
+    if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+      incomingSpeechState.paused = false;
+      incomingSpeechState.lastTick = Date.now();
+      setIncomingPlayIcon(iconEl, true);
+      playBtn.setAttribute('aria-label', '일시정지');
+    } else if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.pause();
+      incomingSpeechState.paused = true;
+      setIncomingPlayIcon(iconEl, false);
+      playBtn.setAttribute('aria-label', '재생');
+    }
+    return;
+  }
+
+  if (!('speechSynthesis' in window)) {
+    showToast('이 브라우저는 음성 재생을 지원하지 않아요');
+    return;
+  }
+
+  stopSpeech();
+  stopIncomingPlayback();
+
+  const text = n.script || n.title;
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'ko-KR';
+  utter.rate = 1;
+
+  const estMs = Math.max(1200, text.length * 150);
+  const state = {
+    n, fillEl, iconEl, playBtn, timer: null,
+    paused: false, elapsedMs: 0, lastTick: Date.now(), utter
+  };
+
+  setIncomingPlayIcon(iconEl, true);
+  playBtn.setAttribute('aria-label', '일시정지');
+
+  state.timer = setInterval(() => {
+    if (state.paused) return;
+    const now = Date.now();
+    state.elapsedMs += now - state.lastTick;
+    state.lastTick = now;
+    const pct = Math.min(100, (state.elapsedMs / estMs) * 100);
+    fillEl.style.width = pct + '%';
+  }, 80);
+
+  incomingSpeechState = state;
+
+  utter.onend = () => {
+    if (incomingSpeechState !== state) return;
+    fillEl.style.width = '100%';
+    stopIncomingPlayback(true);
+  };
+  utter.onerror = () => {
+    if (incomingSpeechState !== state) return;
+    stopIncomingPlayback(false);
+  };
+
+  window.speechSynthesis.speak(utter);
+}
+
+function stopIncomingPlayback(completed = false) {
+  if (!incomingSpeechState) return;
+  const state = incomingSpeechState;
+  clearInterval(state.timer);
+  setIncomingPlayIcon(state.iconEl, false);
+  state.playBtn.setAttribute('aria-label', '재생');
+  state.fillEl.style.width = completed ? '100%' : '0%';
+  incomingSpeechState = null;
+}
+
+function renderAccountPanel() {
+  document.querySelectorAll('.js-account-id').forEach(el => {
+    el.textContent = (currentUserId || '게스트') + ' 님';
+  });
+  renderIncomingShares();
+}
+document.querySelectorAll('.js-account-logout').forEach(btn => {
+  btn.addEventListener('click', () => logout());
+});
+document.querySelectorAll('.js-account-edit').forEach(btn => {
+  btn.addEventListener('click', () => showToast('준비 중인 기능이에요'));
+});
+
+$('friendSearchInput').addEventListener('input', (e) => {
+  friendsSearchQuery = e.target.value;
+  friendsPage = 1;
+  renderFriends();
+});
+// "친구 추가" row (node 57:405) is a plain always-visible inline row now —
+// no more toggle button / collapsible boxed form. Clicking the label (or
+// pressing Enter in either field) submits directly.
+function submitFriendAdd() {
+  const name = $('friendNameInput').value.trim();
+  const email = $('friendEmailInput').value.trim();
+  if (!name || !email) { showToast('이름과 메일을 입력해주세요'); return; }
+  friends.push({ name, email });
+  friendsPage = Math.ceil(friends.length / FRIENDS_PAGE_SIZE); // jump to the page the new friend lands on
+  $('friendNameInput').value = ''; $('friendEmailInput').value = '';
+  renderFriends();
+}
+$('friendAddSubmit').addEventListener('click', submitFriendAdd);
+['friendNameInput', 'friendEmailInput'].forEach(id => {
+  $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') submitFriendAdd(); });
+});
+
+/* ===================== object (오브제) upload ===================== */
+const OBJECT_FILES = [
+  { name: '카페에서_졸음.wav', dur: '0:38' },
+  { name: '옆집강아지.wav', dur: '1:02' },
+  { name: '천둥소리_장난.wav', dur: '0:24' },
+  { name: '동네놀이터.wav', dur: '0:51' },
+  { name: '휴학소식_리액션.wav', dur: '1:14' },
+];
+// Row-per-file with its own "업로드" action, matching the Figma reference
+// (node 48:863) — no separate select-then-confirm step, clicking 업로드
+// uploads that one file immediately.
+function renderObjectList() {
+  const list = $('objectList');
+  list.innerHTML = '';
+  OBJECT_FILES.forEach(f => {
+    const row = document.createElement('div');
+    row.className = 'object-item';
+    row.innerHTML = `<span class="obj-name"></span><span class="obj-dur"></span><button type="button" class="obj-upload">업로드</button>`;
+    row.querySelector('.obj-name').textContent = f.name;
+    row.querySelector('.obj-dur').textContent = f.dur;
+    row.querySelector('.obj-upload').addEventListener('click', () => uploadObjectFile(f, row));
+    list.appendChild(row);
+  });
+}
+function uploadObjectFile(f, row) {
+  if (row.classList.contains('uploaded')) return;
+  row.classList.add('uploaded');
+  const today = new Date();
+  const dateStr = String(today.getFullYear()).slice(2) + '.' + String(today.getMonth() + 1).padStart(2, '0') + '.' + String(today.getDate()).padStart(2, '0');
+  const newEntry = {
+    id: 'u' + Date.now(),
+    title: f.name.replace(/\.[a-z0-9]+$/i, '').replace(/_/g, ' '),
+    date: dateStr,
+    script: '오브제에서 방금 업로드한 잼이에요. 아직 스크립트가 다듬어지지 않았어요.',
+    responses: [],
+  };
+  ARCHIVE_STORAGE.entries.unshift(newEntry);
+  archivePage = 1;
+  addStageObject(newEntry, true);
+  renderArchiveList();
+  openOverlay('list');
+  showToast('업로드 완료 — JAM 목록에 추가됐어요');
+}
+
+/* ===================== three.js scene ===================== */
+const canvas = $('scene3d');
+
+if (typeof THREE === 'undefined') {
+  $('stageHint').textContent = '3D 라이브러리(three.js)를 CDN에서 불러오지 못했어요 — 인터넷 연결을 확인하고 새로고침 해보세요.';
+  $('stageHint').style.background = '#fff';
+  $('stageHint').style.opacity = '1';
+  $('stageHint').style.fontWeight = '700';
+  throw new Error('THREE.js failed to load from CDN — check network/CSP.');
+}
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+} catch (err) {
+  $('stageHint').textContent = '이 브라우저에서 3D(WebGL)를 사용할 수 없어요.';
+  $('stageHint').style.background = '#fff';
+  $('stageHint').style.opacity = '1';
+  $('stageHint').style.fontWeight = '700';
+  throw err;
+}
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, 1, 1, 5000);
+
+const ambient = new THREE.AmbientLight(0xffffff, 0.65);
+scene.add(ambient);
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+dirLight.position.set(60, 120, 100);
+camera.add(dirLight);
+camera.add(dirLight.target);
+dirLight.target.position.set(0, 0, -50);
+scene.add(camera);
+
+/* build geometry from embedded GLB data */
+const geometry = new THREE.BufferGeometry();
+geometry.setAttribute('position', new THREE.Float32BufferAttribute(JAM_GEOM.positions, 3));
+geometry.setAttribute('normal', new THREE.Float32BufferAttribute(JAM_GEOM.normals, 3));
+geometry.setIndex(JAM_GEOM.indices);
+geometry.rotateX(Math.PI / 2); // match the authored node rotation (stand the flat curve upright)
+geometry.computeBoundingBox();
+const bbox = geometry.boundingBox;
+const modelH = bbox.max.y - bbox.min.y;
+const modelW = bbox.max.x - bbox.min.x;
+// re-center so object pivots around its own middle
+geometry.translate(-(bbox.max.x + bbox.min.x) / 2, -(bbox.max.y + bbox.min.y) / 2, -(bbox.max.z + bbox.min.z) / 2);
+
+const SCALE = 1200;
+const mainMaterial = new THREE.MeshStandardMaterial({ color: 0x201d10, roughness: 0.55, metalness: 0.12 });
+const selectedMaterial = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.4, metalness: 0.2, emissive: 0x332b00, emissiveIntensity: 0.15 });
+// Hover = brand-yellow glow so a link visibly lights up before it's clicked.
+// Active/open (the response whose reply is currently showing in the info
+// panel) gets a stronger, steadier yellow so it stays visually distinct from
+// a link you're just passing the mouse over.
+const hoverMaterial = new THREE.MeshStandardMaterial({ color: 0x3a3420, roughness: 0.45, metalness: 0.12, emissive: 0xfff129, emissiveIntensity: 0.45 });
+const activeChildMaterial = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.4, metalness: 0.2, emissive: 0xfff129, emissiveIntensity: 0.7 });
+
+const stageGroup = new THREE.Group();
+scene.add(stageGroup);
+const mainMeshes = new Map(); // id -> mesh
+let childGroup = null;
+
+function makeJamMesh(scale, material) {
+  const m = new THREE.Mesh(geometry, material);
+  m.scale.setScalar(scale);
+  return m;
+}
+
+function rebuildStagePage() {
+  // clear stage (manual loop — avoids relying on Object3D.clear(), not present in every three.js build)
+  while (stageGroup.children.length) stageGroup.remove(stageGroup.children[0]);
+  mainMeshes.clear();
+  childGroup = null;
+
+  if (!loggedIn) { $('stageHint').textContent = '로그인하면 잼 3D 오브젝트들을 볼 수 있어요'; return; }
+
+  const list = filteredEntries();
+  if (selectedId && list.some(e => e.id === selectedId)) {
+    buildSelectedChain();
+    $('stageHint').textContent = '드래그로 회전, 스크롤로 확대, Shift+드래그로 상하 이동';
+  } else {
+    selectedId = null;
+    infoPanel.classList.remove('active');
+    sharePanel.classList.remove('active');
+    $('stageHint').textContent = '오른쪽 JAM 목록에서 잼을 선택해보세요';
+  }
+}
+
+function addStageObject(entry, focus) {
+  if (focus) { focusEntry(entry.id, true); } else { rebuildStagePage(); }
+}
+
+/* ---- selection / children ---- */
+// Selecting an archive entry shows ONLY that jam — plus its shared/response
+// jams chained directly beneath it, all at the same size. Consecutive links
+// alternate a 90° turn around the vertical axis (like real chain links /
+// paperclips: one link face-on, the next edge-on) instead of a flat mirror,
+// so the chain reads as genuinely 3D rather than a flipped 2D sprite.
+// The chain hangs downward from its parent link (children sit at negative Y).
+// With the fixed (non-growing) camera radius, the frame is only just tall
+// enough for the PARENT alone — so the parent stays exactly at the center of
+// the frame (no vertical shift at all) and any children simply hang down
+// into the lower half of the frame, clipping at the bottom edge once the
+// chain runs longer than the frame can show. (An earlier version shifted the
+// look-target up to make room for the whole chain — that assumed the old
+// zoom-to-fit camera, which grew with the chain; against the new fixed,
+// tight zoom it pushed the parent almost out of frame instead, which is the
+// centering bug this replaces.) The clipped tail stays reachable by panning
+// (see chainCenterYBounds).
+function chainDownShiftFor(entry) {
+  return 0;
+}
+
+function buildSelectedChain() {
+  while (stageGroup.children.length) stageGroup.remove(stageGroup.children[0]);
+  mainMeshes.clear();
+  childGroup = null;
+
+  const entry = ARCHIVE_STORAGE.entries.find(e => e.id === selectedId);
+  if (!entry) return;
+
+  const parentMesh = makeJamMesh(SCALE, selectedMaterial);
+  parentMesh.position.set(0, 0, 0);
+  parentMesh.userData = { entryId: entry.id, baseX: 0 };
+  stageGroup.add(parentMesh);
+  mainMeshes.set(entry.id, parentMesh);
+
+  if (entry.responses.length) {
+    childGroup = new THREE.Group();
+    // The jam mesh's own vertical profile is: flat bar (bottom ~9%) - thin rod -
+    // round loop (centered, ~46% of the height) - thin rod - flat bar (top ~9%).
+    // Bar-only contact (no clipping into the loop) holds anywhere in roughly
+    // [0.91, 1.0] of the full height; leaning toward the lower end of that
+    // range gives a bit more overlap ("더 겹치게") while staying clear of the
+    // loop.
+    const step = modelH * SCALE * 0.915;
+    entry.responses.forEach((resp, i) => {
+      const mesh = makeJamMesh(SCALE, mainMaterial);
+      mesh.position.set(0, -(step * (i + 1)), 0);
+      // Full 90° turn, as requested — the thin edge poking out at the joint
+      // is expected/correct here, not a bug.
+      if (i % 2 === 0) mesh.rotation.y = Math.PI / 2;
+      mesh.userData = { entryId: selectedId, responseIdx: i };
+      childGroup.add(mesh);
+    });
+    stageGroup.add(childGroup);
+  }
+  refreshChainVisuals();
+}
+
+// Hovered mesh (pointer over, not yet clicked) is tracked separately from
+// selectedResponseIdx (the response currently open in the info panel) so the
+// two states can render with different materials at the same time.
+let hoveredMesh = null;
+function refreshChainVisuals() {
+  const parentMesh = mainMeshes.get(selectedId);
+  if (parentMesh) parentMesh.material = (hoveredMesh === parentMesh) ? hoverMaterial : selectedMaterial;
+  if (childGroup) {
+    childGroup.children.forEach((mesh, i) => {
+      if (hoveredMesh === mesh) mesh.material = hoverMaterial;
+      else if (selectedResponseIdx === i) mesh.material = activeChildMaterial;
+      else mesh.material = mainMaterial;
+    });
+  }
+}
+
+function deselectEntry() {
+  selectedId = null;
+  selectedResponseIdx = null;
+  activePanelMesh = null;
+  stopSpeech();
+  infoPanel.classList.remove('active');
+  sharePanel.classList.remove('active');
+  rebuildStagePage();
+  renderArchiveList();
+}
+
+// Selecting a jam from the right-side LIST only builds/centers its chain on
+// stage — it must NOT open the script panel. The script opens only when the
+// user clicks an individual jam graphic directly on the stage (see
+// handleCanvasClick), so any script left open from a previous selection is
+// closed here first.
+function focusEntry(id, animateCam) {
+  selectedId = id;
+  selectedResponseIdx = null;
+  activePanelMesh = null;
+  stopSpeech();
+  infoPanel.classList.remove('active');
+  sharePanel.classList.remove('active');
+  buildSelectedChain();
+  renderArchiveList();
+  $('stageHint').innerHTML = '<span class="hint-line">드래그로 회전, 스크롤로 확대, Shift+드래그로 상하 이동</span><span class="hint-line">잼을 클릭하면 스크립트가 열려요</span>';
+  if (animateCam) {
+    const entry = ARCHIVE_STORAGE.entries.find(e => e.id === id);
+    // Fixed zoom (not shrinking for longer chains) — a solo jam nearly fills
+    // the frame, and a longer chain is allowed to run past the bottom edge
+    // rather than shrinking everything down to fit.
+    targetSpherical.radius = BASE_CHAIN_RADIUS;
+    // True center by default — the shift only happens once a specific
+    // jam on the stage is actually clicked (see animateCenterTo below).
+    stopCenterAnim();
+    targetSpherical.centerX = 0;
+    targetSpherical.centerY = chainDownShiftFor(entry);
+    targetSpherical.theta = DEFAULT_THETA;
+    targetSpherical.phi = DEFAULT_PHI;
+    updateCameraFromSpherical();
+  }
+}
+
+let activePanelMesh = null;
+
+function showInfoForEntry(id) {
+  const entry = ARCHIVE_STORAGE.entries.find(e => e.id === id);
+  if (!entry) return;
+  stopSpeech();
+  sharePanel.classList.remove('active');
+  $('infoDate').textContent = entry.date;
+  $('infoTitle').textContent = entry.title;
+  $('infoScript').textContent = entry.script;
+  $('infoScript').style.display = '';
+  $('infoControlsMain').style.display = 'flex';
+  // SHARE is always available now (matches Figma's PREV/NEXT/SHARE row) —
+  // picking a friend who's already received this jam is prevented inside
+  // openSharePanel()'s own pool filter, not by hiding the button.
+  $('infoShareBtn').style.display = 'inline';
+  $('infoReactionBody').innerHTML = '';
+  infoPanel.classList.add('active');
+  activePanelMesh = mainMeshes.get(id);
+  infoPanel.dataset.speakText = entry.script;
+}
+
+function showReactionForChild(id, idx) {
+  const entry = ARCHIVE_STORAGE.entries.find(e => e.id === id);
+  if (!entry) return;
+  const resp = entry.responses[idx];
+  stopSpeech();
+  sharePanel.classList.remove('active');
+  $('infoDate').textContent = entry.date;
+  $('infoTitle').textContent = resp.friend + '의 반응';
+  $('infoScript').style.display = 'none';
+  $('infoControlsMain').style.display = resp.response ? 'flex' : 'none';
+  $('infoShareBtn').style.display = 'none';
+  const body = document.createElement('p');
+  body.className = 'info-script' + (resp.response ? '' : ' info-body-pending');
+  body.style.display = 'block';
+  body.textContent = resp.response || '아직 응답이 없어요';
+  $('infoReactionBody').innerHTML = '';
+  $('infoReactionBody').appendChild(body);
+  infoPanel.classList.add('active');
+  const childMesh = childGroup ? childGroup.children[idx] : null;
+  activePanelMesh = childMesh;
+  infoPanel.dataset.speakText = resp.response || '';
+}
+
+// SHARE now opens a friend-picker card in the same spot as the script card
+// (Figma node 57:653) instead of pushing a response to a random friend from
+// the pool — the user picks exactly who gets it.
+function openSharePanel(entryId) {
+  const entry = ARCHIVE_STORAGE.entries.find(e => e.id === entryId);
+  if (!entry) return;
+  const pool = friends.filter(f => !entry.responses.some(r => r.friend === f.name));
+  if (!pool.length) { showToast('공유할 친구가 없어요'); return; }
+  shareTargetEntryId = entryId;
+  const list = $('shareFriendList');
+  list.innerHTML = '';
+  pool.forEach(f => {
+    const row = document.createElement('div');
+    row.className = 'share-friend-row';
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'share-friend-name';
+    nameSpan.textContent = f.name;
+    const emailSpan = document.createElement('span');
+    emailSpan.className = 'share-friend-email';
+    emailSpan.textContent = f.email;
+    const shareBtn = document.createElement('button');
+    shareBtn.type = 'button';
+    shareBtn.className = 'share-friend-btn';
+    shareBtn.textContent = '공유';
+    shareBtn.addEventListener('click', () => shareEntryWithFriend(entryId, f.name));
+    row.appendChild(nameSpan);
+    row.appendChild(emailSpan);
+    row.appendChild(shareBtn);
+    list.appendChild(row);
+  });
+  infoPanel.classList.remove('active');
+  sharePanel.classList.add('active');
+}
+function closeSharePanel() {
+  sharePanel.classList.remove('active');
+  shareTargetEntryId = null;
+  if (selectedId) showInfoForEntry(selectedId);
+}
+$('infoShareBtn').addEventListener('click', () => {
+  if (!selectedId) return;
+  openSharePanel(selectedId);
+});
+$('shareClose').addEventListener('click', closeSharePanel);
+
+// PREV/NEXT step through this jam's chain on the stage — the parent script
+// first, then each friend's reaction in order — mirroring clicking each
+// link's graphic directly, including the camera re-centering on it.
+function chainItemCount(entry) {
+  return entry ? 1 + entry.responses.length : 0;
+}
+function currentChainIndex() {
+  return selectedResponseIdx === null ? 0 : selectedResponseIdx + 1;
+}
+function goToChainIndex(idx) {
+  const entry = ARCHIVE_STORAGE.entries.find(e => e.id === selectedId);
+  if (!entry) return;
+  const mesh = idx === 0 ? mainMeshes.get(selectedId) : (childGroup ? childGroup.children[idx - 1] : null);
+  if (idx === 0) {
+    selectedResponseIdx = null;
+    showInfoForEntry(selectedId);
+  } else {
+    selectedResponseIdx = idx - 1;
+    showReactionForChild(selectedId, idx - 1);
+  }
+  if (mesh) {
+    const worldPos = new THREE.Vector3();
+    mesh.getWorldPosition(worldPos);
+    targetSpherical.radius = BASE_CHAIN_RADIUS;
+    animateCenterTo(frameCenterX(), worldPos.y);
+  }
+  refreshChainVisuals();
+}
+$('infoPrevBtn').addEventListener('click', () => {
+  if (!selectedId) return;
+  const entry = ARCHIVE_STORAGE.entries.find(e => e.id === selectedId);
+  const len = chainItemCount(entry);
+  if (!len) return;
+  goToChainIndex((currentChainIndex() - 1 + len) % len);
+});
+$('infoNextBtn').addEventListener('click', () => {
+  if (!selectedId) return;
+  const entry = ARCHIVE_STORAGE.entries.find(e => e.id === selectedId);
+  const len = chainItemCount(entry);
+  if (!len) return;
+  goToChainIndex((currentChainIndex() + 1) % len);
+});
+
+// The script card's position is now a fixed CSS percentage (see .info-panel
+// in the stylesheet, matching Figma node 48:863 exactly) instead of a
+// per-frame JS projection of the mesh's screen position — that projection
+// was the root cause of two earlier bugs (left-edge overflow, then a
+// center-clamp collapse). What still moves is the whole camera framing
+// (shifted left, and vertically re-centered on whichever jam was actually
+// clicked): see frameCenterX()/animateCenterTo() below.
+
+/* ---- speech playback ("음성이 나옴") ---- */
+let currentUtterance = null;
+let speechTimer = null;
+function stopSpeech() {
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  clearInterval(speechTimer);
+  speechTimer = null;
+  setPlayIcon(false);
+  $('infoProgressFill').style.width = '0%';
+  stopIncomingPlayback();
+}
+function setPlayIcon(playing) {
+  $('infoPlayIcon').innerHTML = playing
+    ? '<rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/>'
+    : '<path d="M8 5v14l11-7z"/>';
+}
+function playCurrent() {
+  const text = infoPanel.dataset.speakText;
+  if (!text) { showToast('재생할 음성이 없어요'); return; }
+  if (!('speechSynthesis' in window)) { showToast('이 브라우저는 음성 재생을 지원하지 않아요'); return; }
+  stopSpeech();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'ko-KR';
+  utter.rate = 1;
+  currentUtterance = utter;
+  const estMs = Math.max(1200, text.length * 150);
+  const startedAt = Date.now();
+  setPlayIcon(true);
+  speechTimer = setInterval(() => {
+    const pct = Math.min(100, ((Date.now() - startedAt) / estMs) * 100);
+    $('infoProgressFill').style.width = pct + '%';
+    if (pct >= 100) clearInterval(speechTimer);
+  }, 80);
+  utter.onend = () => { setPlayIcon(false); clearInterval(speechTimer); $('infoProgressFill').style.width = '100%'; };
+  utter.onerror = () => { setPlayIcon(false); clearInterval(speechTimer); };
+  window.speechSynthesis.speak(utter);
+}
+$('infoPlay').addEventListener('click', () => {
+  if (window.speechSynthesis && window.speechSynthesis.speaking) { stopSpeech(); return; }
+  playCurrent();
+});
+
+/* ===================== camera controls (custom orbit/pan/zoom) ===================== */
+// theta starts off dead-center on purpose. The jam mesh is flat-ish along Z, so a
+// straight front view (theta=0) makes any 90°-turned chain link — which faces its
+// thin edge toward the camera — nearly invisible, collapsing the chain into what
+// looks like a single merged blob. A slight 3/4 angle keeps every link, turned or
+// not, legible as part of the chain.
+const DEFAULT_THETA = 0.5;
+const DEFAULT_PHI = 1.3;
+const targetSpherical = { centerX: 0, centerY: 0, centerZ: 0, radius: 220, theta: DEFAULT_THETA, phi: DEFAULT_PHI };
+let dragging = false, dragButton = 0, lastX = 0, lastY = 0;
+
+// Fixed camera distance. Figma node 48:863 measures a single chain-link
+// instance at 167×345px inside a 720×900 stage panel (≈38.3% of the stage's
+// height) — the SAME fixed size whether it's a solo jam or one link out of a
+// long chain (the icon itself never grows to "fill the screen"). A literal
+// pixel-for-pixel match to that flat-icon measurement read as too small once
+// rendered as an actual 3D mesh though (a 3D object viewed at an angle
+// doesn't fill its own bounding box as solidly as a flat icon does, so the
+// same height fraction reads visually smaller) — bumped up from there to a
+// size that reads right on screen. Either way it's a single fixed fraction:
+// the camera radius only has to fit one link at that size, not the whole
+// span, and it never changes per entry. Longer chains simply run past the
+// frame using this same per-link size instead of the whole camera shrinking
+// to keep them fully visible (matches Figma itself, where a 3rd link already
+// overflows the frame) — the tail is reachable by panning
+// (chainCenterYBounds).
+const FOV_RAD = (camera.fov * Math.PI) / 180;
+const SOLO_LINK_FRAME_FRACTION = 0.6;
+const BASE_CHAIN_RADIUS = (() => {
+  const soloSpan = modelH * SCALE / SOLO_LINK_FRAME_FRACTION;
+  const r = soloSpan / (2 * Math.tan(FOV_RAD / 2));
+  return Math.min(600, Math.max(24, r));
+})();
+
+// World-space horizontal AIM shift used ONLY while a script is open (see
+// handleCanvasClick/closeLinkScript) — the default/unclicked framing stays
+// truly centered (centerX 0). 0.26 made the jam's own left-edge margin
+// (stage edge → jam) exactly equal to its right-side gap (jam → script
+// card); 0.21 eases off that exact balance to nudge the jam a bit further
+// right/toward the card while still leaving a clear gap before it, given
+// the card's current position (left: 51%).
+function frameCenterX() {
+  const aspect = camera.aspect || 0.8;
+  const visibleWidth = 2 * targetSpherical.radius * Math.tan(FOV_RAD / 2) * aspect;
+  return visibleWidth * 0.21;
+}
+
+// IMPORTANT: centerX (and centerZ, always 0 today) intentionally do NOT
+// shift the camera's POSITION here — only its rotation pivot (orbit always
+// happens around true world X/Z = 0, where every jam mesh actually sits).
+// They're applied only to lookAt() below, as an AIM offset. Earlier this
+// shifted both position and aim together, which moved the whole orbit pivot
+// away from the actual jam whenever a script was open (centerX ≠ 0) — so
+// rotating didn't spin the jam in place, it swung the camera around some
+// point off in empty space next to it, throwing the jam into the script
+// card's area. Decoupling the two means the camera still orbits the real
+// jam (rotation looks correct) while still aiming slightly off from center
+// to hold the jam over toward its left-shifted on-screen spot.
+function updateCameraFromSpherical() {
+  const { centerX, centerY, centerZ, radius, theta, phi } = targetSpherical;
+  const x = radius * Math.sin(phi) * Math.sin(theta);
+  const y = centerY + radius * Math.cos(phi);
+  const z = radius * Math.sin(phi) * Math.cos(theta);
+  camera.position.set(x, y, z);
+  camera.lookAt(centerX, centerY, centerZ);
+}
+
+// Smoothly animates the camera's look-at center (both X and Y at once) —
+// used for two things: (1) the horizontal "make room for the script" shift
+// whenever any jam on the stage is clicked, and (2) bringing the SPECIFIC
+// clicked jam to vertical center when it's a lower/child link in a chain
+// (so clicking a link further down the chain animates that link up into the
+// middle of the frame, instead of the framing staying pinned to the parent).
+let centerAnimId = null;
+function stopCenterAnim() {
+  if (centerAnimId !== null) { cancelAnimationFrame(centerAnimId); centerAnimId = null; }
+}
+function animateCenterTo(targetX, targetY, duration) {
+  duration = duration || 420;
+  stopCenterAnim();
+  const startX = targetSpherical.centerX;
+  const startY = targetSpherical.centerY;
+  if (Math.abs(startX - targetX) < 0.001 && Math.abs(startY - targetY) < 0.001) {
+    targetSpherical.centerX = targetX;
+    targetSpherical.centerY = targetY;
+    updateCameraFromSpherical();
+    return;
+  }
+  const startTime = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  function step(now) {
+    const t = Math.min(1, (now - startTime) / duration);
+    const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+    targetSpherical.centerX = startX + (targetX - startX) * eased;
+    targetSpherical.centerY = startY + (targetY - startY) * eased;
+    updateCameraFromSpherical();
+    if (t < 1) centerAnimId = requestAnimationFrame(step);
+    else centerAnimId = null;
+  }
+  centerAnimId = requestAnimationFrame(step);
+}
+
+// Panning is vertical-only. The parent link rests at the exact center of the
+// frame (chainDownShiftFor === 0 now), so there's nothing above it worth
+// panning up to — just a small fixed amount of slack. Panning DOWN is what
+// actually matters: decreasing centerY pulls the hanging children upward on
+// screen, which is how a clipped tail (see chainDownShiftFor) gets back into
+// view, so that direction's bound scales with the chain's real length
+// (spacing between links × count) so the very last child stays reachable no
+// matter how long the chain runs.
+function chainCenterYBounds() {
+  const entry = ARCHIVE_STORAGE.entries.find(e => e.id === selectedId);
+  const n = entry ? entry.responses.length : 0;
+  const restY = chainDownShiftFor(entry);
+  const step = modelH * SCALE * 0.915;
+  const downSpan = modelH * SCALE * 0.15 + step * n;
+  const upSpan = modelH * SCALE * 0.3;
+  return { min: restY - downSpan, max: restY + upSpan };
+}
+function clampCenterY(y) {
+  const { min, max } = chainCenterYBounds();
+  return Math.min(max, Math.max(min, y));
+}
+
+// Horizontal panning, added alongside zoom so the two aren't at odds with
+// each other — zooming in on a wide chain with NO way to look left/right
+// would make zoom mostly useless. Kept fairly tight (a fraction of the
+// current visible width) since there's nothing to see off to either side —
+// it's just a little slack for looking around, not a way to reach distant
+// content the way vertical pan reaches the rest of a long chain.
+function chainCenterXBounds() {
+  const aspect = camera.aspect || 0.8;
+  const visibleWidth = 2 * targetSpherical.radius * Math.tan(FOV_RAD / 2) * aspect;
+  return { min: -visibleWidth * 0.4, max: visibleWidth * 0.4 };
+}
+function clampCenterX(x) {
+  const { min, max } = chainCenterXBounds();
+  return Math.min(max, Math.max(min, x));
+}
+
+// While a script is open, the camera framing is meant to stay close to how
+// it opened — but fully locking rotate/pan/zoom felt broken rather than
+// intentional. So instead: vertical pan stays completely unrestricted (it
+// never conflicted with the script card, which sits to the side, not above
+// or below), while rotate, horizontal pan and zoom are still allowed but
+// clamped to a small range around where the script opened — enough to
+// glance around/adjust slightly without the jam swinging into the script
+// card's space. (That the jam could swing there at all was really a
+// separate bug — rotation was orbiting the wrong pivot — fixed above in
+// updateCameraFromSpherical(); this range limit is a smaller, deliberate
+// safety margin on top of that fix, not a workaround for it.)
+function isScriptOpen() {
+  return infoPanel.classList.contains('active') || sharePanel.classList.contains('active');
+}
+const LOCKED_THETA_SLACK = 0.35;
+const LOCKED_PHI_SLACK = 0.25;
+const LOCKED_RADIUS_SLACK = 25;
+const LOCKED_PAN_X_FRACTION = 0.08;
+function clampLockedTheta(t) {
+  return Math.min(DEFAULT_THETA + LOCKED_THETA_SLACK, Math.max(DEFAULT_THETA - LOCKED_THETA_SLACK, t));
+}
+function clampLockedPhi(p) {
+  return Math.min(DEFAULT_PHI + LOCKED_PHI_SLACK, Math.max(DEFAULT_PHI - LOCKED_PHI_SLACK, p));
+}
+function clampLockedRadius(r) {
+  return Math.min(BASE_CHAIN_RADIUS + LOCKED_RADIUS_SLACK, Math.max(BASE_CHAIN_RADIUS - LOCKED_RADIUS_SLACK, r));
+}
+function clampLockedCenterX(x) {
+  const rest = frameCenterX();
+  const aspect = camera.aspect || 0.8;
+  const visibleWidth = 2 * targetSpherical.radius * Math.tan(FOV_RAD / 2) * aspect;
+  const slack = visibleWidth * LOCKED_PAN_X_FRACTION;
+  return Math.min(rest + slack, Math.max(rest - slack, x));
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+  dragging = true; dragButton = e.button; lastX = e.clientX; lastY = e.clientY;
+  canvas.setPointerCapture(e.pointerId);
+  canvas.dataset.moved = '0';
+});
+canvas.addEventListener('pointermove', (e) => {
+  if (!dragging) return;
+  const dx = e.clientX - lastX, dy = e.clientY - lastY;
+  if (Math.abs(dx) + Math.abs(dy) > 2) canvas.dataset.moved = '1';
+  lastX = e.clientX; lastY = e.clientY;
+  const locked = isScriptOpen();
+  if (e.shiftKey || dragButton === 2) {
+    // pan — vertical always full-range; horizontal tightened while a script is open
+    const panScale = targetSpherical.radius * 0.0015;
+    targetSpherical.centerX = locked
+      ? clampLockedCenterX(targetSpherical.centerX + dx * panScale)
+      : clampCenterX(targetSpherical.centerX + dx * panScale);
+    targetSpherical.centerY = clampCenterY(targetSpherical.centerY + dy * panScale);
+  } else {
+    const nextTheta = targetSpherical.theta - dx * 0.006;
+    const nextPhi = Math.min(2.6, Math.max(0.5, targetSpherical.phi - dy * 0.006));
+    targetSpherical.theta = locked ? clampLockedTheta(nextTheta) : nextTheta;
+    targetSpherical.phi = locked ? clampLockedPhi(nextPhi) : nextPhi;
+  }
+  updateCameraFromSpherical();
+});
+window.addEventListener('pointerup', (e) => {
+  if (!dragging) return;
+  dragging = false;
+  if (canvas.dataset.moved === '0') handleCanvasClick(e);
+});
+canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const nextRadius = targetSpherical.radius + e.deltaY * 0.25;
+  targetSpherical.radius = isScriptOpen()
+    ? clampLockedRadius(nextRadius)
+    : Math.min(600, Math.max(60, nextRadius));
+  updateCameraFromSpherical();
+}, { passive: false });
+
+// Arrow keys pan too (same clamps as drag-pan): up/down always full-range,
+// left/right tightened while a script is open. Guarded so arrow presses
+// don't hijack typing in the search box, and so they only pan while the
+// archive/stage screen is actually showing.
+window.addEventListener('keydown', (e) => {
+  const activeTag = document.activeElement && document.activeElement.tagName;
+  if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
+  const archiveScreen = document.getElementById('screenArchive');
+  if (!archiveScreen || !archiveScreen.classList.contains('jam3d-entering')) return;
+  const locked = isScriptOpen();
+  const step = targetSpherical.radius * 0.18 * 0.4;
+  let handled = true;
+  if (e.key === 'ArrowUp') targetSpherical.centerY = clampCenterY(targetSpherical.centerY + step);
+  else if (e.key === 'ArrowDown') targetSpherical.centerY = clampCenterY(targetSpherical.centerY - step);
+  else if (e.key === 'ArrowLeft') {
+    const next = targetSpherical.centerX - step;
+    targetSpherical.centerX = locked ? clampLockedCenterX(next) : clampCenterX(next);
+  } else if (e.key === 'ArrowRight') {
+    const next = targetSpherical.centerX + step;
+    targetSpherical.centerX = locked ? clampLockedCenterX(next) : clampCenterX(next);
+  } else handled = false;
+  if (handled) { e.preventDefault(); updateCameraFromSpherical(); }
+});
+
+const raycaster = new THREE.Raycaster();
+const mouseNDC = new THREE.Vector2();
+function raycastAt(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  mouseNDC.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+  mouseNDC.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(mouseNDC, camera);
+  const targets = [...mainMeshes.values()];
+  if (childGroup) targets.push(...childGroup.children);
+  return raycaster.intersectObjects(targets);
+}
+
+// Clicking a jam LIST ROW only builds/centers the chain (focusEntry) — the
+// script never auto-opens from there. It opens only here, from an actual
+// click on a jam graphic on the stage: the chain is already built/selected,
+// so this just shows the script, shifts the framing left to make room for
+// it, AND — if the clicked jam is a lower link in the chain, not the parent
+// — animates that specific jam up to vertical center too, so whichever link
+// you click is the one that ends up front-and-center, not just the parent.
+function handleCanvasClick(e) {
+  const hits = raycastAt(e.clientX, e.clientY);
+  if (!hits.length) return;
+  const obj = hits[0].object;
+  let clickedMesh;
+  if (obj.userData.responseIdx !== undefined) {
+    selectedResponseIdx = obj.userData.responseIdx;
+    showReactionForChild(obj.userData.entryId, obj.userData.responseIdx);
+    clickedMesh = obj;
+  } else if (obj.userData.entryId) {
+    selectedResponseIdx = null;
+    showInfoForEntry(obj.userData.entryId);
+    clickedMesh = obj;
+  }
+  if (clickedMesh) {
+    const worldPos = new THREE.Vector3();
+    clickedMesh.getWorldPosition(worldPos);
+    // Reset zoom to the standard reading distance so the small locked-zoom
+    // range (see LOCKED_RADIUS_SLACK) always starts from the same baseline,
+    // regardless of whatever zoom level was left over from browsing before
+    // this click.
+    targetSpherical.radius = BASE_CHAIN_RADIUS;
+    animateCenterTo(frameCenterX(), worldPos.y);
+  }
+  refreshChainVisuals();
+}
+
+// Closes just the open script/highlight (the info panel's own × button) —
+// distinct from deselectEntry(), which fully clears the selection back to
+// the empty stage and is wired to the stage's big × "close" zoom control.
+// Recenters back on the parent (centerY 0) the same way the default,
+// nothing-clicked framing does.
+function closeLinkScript() {
+  selectedResponseIdx = null;
+  activePanelMesh = null;
+  stopSpeech();
+  infoPanel.classList.remove('active');
+  sharePanel.classList.remove('active');
+  animateCenterTo(0, 0);
+  refreshChainVisuals();
+}
+$('infoClose').addEventListener('click', closeLinkScript);
+
+// Hover feedback: only raycast while not dragging (dragging already has its
+// own pointermove handler for orbit/pan). Cursor switches to a pointer over
+// a clickable link, and the link itself lights up via refreshChainVisuals so
+// hover is visually distinct from both the default and the clicked/active look.
+canvas.addEventListener('pointermove', (e) => {
+  if (dragging) return;
+  const hits = raycastAt(e.clientX, e.clientY);
+  const newHover = hits.length ? hits[0].object : null;
+  if (newHover !== hoveredMesh) {
+    hoveredMesh = newHover;
+    canvas.style.cursor = hoveredMesh ? 'pointer' : 'grab';
+    refreshChainVisuals();
+  }
+});
+canvas.addEventListener('pointerleave', () => {
+  if (hoveredMesh) {
+    hoveredMesh = null;
+    canvas.style.cursor = 'grab';
+    refreshChainVisuals();
+  }
+});
+
+/* ===================== render loop / resize ===================== */
+function resizeRenderer() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  renderer.setSize(rect.width, rect.height, false);
+  camera.aspect = rect.width / rect.height;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resizeRenderer);
+
+// Page size is now fixed (see ARCHIVE_PAGE_SIZE), but keep re-rendering the
+// list/pagination on resize anyway — debounced to avoid thrashing while the
+// window is actively being dragged — since other layout bits around it still
+// depend on viewport size.
+let archiveResizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(archiveResizeTimer);
+  archiveResizeTimer = setTimeout(renderArchiveList, 150);
+});
+
+// No open/unopened distinction any more — every link in the chain just sits
+// at the fixed spot buildSelectedChain() gave it (that's what keeps the
+// chain actually looking connected), so the render loop has nothing to
+// animate per-frame beyond the info panel tracking the active mesh.
+function animate() {
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+}
+
+/* ===================== init ===================== */
+document.querySelectorAll('.js-nav-login-label').forEach(el => { el.textContent = loggedIn ? 'MYPAGE' : 'LOGIN'; });
+renderIncomingShares();
+resizeRenderer();
+updateCameraFromSpherical();
+updateAuthUI();
+animate();
+
+</script>
+<script>
+/* ===================== home screen navigation ===================== */
+(function () {
+  var home = document.getElementById('screenHome');
+  var archive = document.getElementById('screenArchive');
+
+  function goToArchive() {
+    home.classList.add('jl-leaving');
+    archive.classList.add('jam3d-entering');
+    setTimeout(function () {
+      home.style.display = 'none';
+    }, 720);
+  }
+
+  function goToHome() {
+    home.style.display = '';
+    archive.classList.remove('jam3d-entering');
+    void home.offsetWidth;
+    home.classList.remove('jl-leaving');
+  }
+
+  function openArchiveNav(id) {
+    goToArchive();
+    setTimeout(function () {
+      var target = document.getElementById(id);
+      if (target) target.click();
+    }, 720);
+  }
+
+  // Delegate from the nav itself. This prevents the full-screen home click
+  // handler from swallowing the navigation controls.
+  var nav = document.querySelector('.jl2-nav');
+  if (nav) {
+    nav.addEventListener('click', function (e) {
+      var button = e.target.closest('button');
+      if (!button) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (button.id === 'homeNavLogin') {
+        openArchiveNav('navLogin');
+      } else if (button.id === 'homeNavFriends') {
+        openArchiveNav('navFriends');
+      } else if (button.id === 'homeNavJam') {
+        openArchiveNav('navJam');
+      } else if (button.id === 'homeNavUpload') {
+        openArchiveNav('navUpload');
+      }
+    });
+  }
+
+  var archiveHomeLogo = document.getElementById('archiveHomeLogo');
+  if (archiveHomeLogo) {
+    archiveHomeLogo.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      goToHome();
+    });
+  }
+
+  home.addEventListener('click', function (e) {
+    if (e.target.closest && e.target.closest('.jl2-nav')) return;
+    goToArchive();
+  });
+})();
+</script>
