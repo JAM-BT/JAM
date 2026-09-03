@@ -115,15 +115,6 @@
 
   .jl2-logo { position: absolute; right: 3.5%; bottom: 5.56%; width: 6.9%; height: auto; color: var(--black); }
 
-  .jl2-nav { position: absolute; left: 53.82%; top: 91.8%; display: flex; gap: clamp(16px, 2.5vw, 36px); }
-  .jl2-nav button {
-    font-family: var(--font-en); font-size: 16px; font-weight: 400; letter-spacing: -0.2px;
-    color: var(--black); background: none; border: none; padding: 4px 2px; cursor: pointer;
-    transition: opacity 0.15s ease, transform 0.1s ease;
-  }
-  .jl2-nav button:hover { opacity: 0.6; }
-  .jl2-nav button:active { transform: scale(0.96); }
-
   /* ---- intro animation (home screen entrance) ---- */
   @keyframes jlFadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes jlFadeScale { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
@@ -133,11 +124,6 @@
   .jl2-copy.jl2-en { animation: jlFadeUp 0.5s cubic-bezier(.2,.7,.3,1) both; animation-delay: 0.25s; }
   .jl2-logo { animation: jlFadeScale 0.5s cubic-bezier(.2,.7,.3,1) both; animation-delay: 0.4s; }
   .jl2-chain-mark { animation: jlMarkIn 0.4s cubic-bezier(.2,.7,.3,1) both; animation-delay: 0.1s; }
-  .jl2-nav button { opacity: 0; animation: jlFadeUp 0.45s cubic-bezier(.2,.7,.3,1) both; }
-  .jl2-nav button:nth-child(1) { animation-delay: 0.48s; }
-  .jl2-nav button:nth-child(2) { animation-delay: 0.52s; }
-  .jl2-nav button:nth-child(3) { animation-delay: 0.56s; }
-  .jl2-nav button:nth-child(4) { animation-delay: 0.6s; }
 
   /* These intro animations run on a fixed clock from page load — fine
      normally, but while the human-verification gate covers the screen for
@@ -152,15 +138,14 @@
      i.e. exactly when the content actually becomes visible. Split into two
      independent groups because the gate's own reveal isn't one moment: the
      left (chain mark) plays first, once the card has finished becoming the
-     right panel; the right-side pieces (copy/logo/nav) only start once the
+     right panel; the right-side pieces (copy/logo) only start once the
      chain mark's own entrance has actually finished playing. */
   #screenHome:not(.jl2-intro-play-left) .jl2-chain-mark {
     animation-play-state: paused !important;
   }
   #screenHome:not(.jl2-intro-play-right) .jl2-copy.jl2-kr,
   #screenHome:not(.jl2-intro-play-right) .jl2-copy.jl2-en,
-  #screenHome:not(.jl2-intro-play-right) .jl2-logo,
-  #screenHome:not(.jl2-intro-play-right) .jl2-nav button {
+  #screenHome:not(.jl2-intro-play-right) .jl2-logo {
     animation-play-state: paused !important;
   }
 
@@ -168,7 +153,6 @@
     .jl2-yellow-panel { width: 100%; height: 42%; border-right: none; border-bottom: 3px solid var(--home-yellow-border); }
     .jl2-copy-wrap { left: 6%; width: 88%; top: 46%; }
     .jl2-logo { right: 6%; bottom: 3%; width: 14%; }
-    .jl2-nav { left: 6%; top: 90%; gap: 14px; }
   }
 
   /* ===================== archive screen (jam-3d app, unchanged) ===================== */
@@ -252,7 +236,8 @@
   .jam-search svg { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--black); opacity: 0.55; pointer-events: none; }
 
   /* bottom nav + JAM logo mark, pinned inside the right panel at the same
-     coordinates as the home screen's own nav/logo (see .jl2-nav / .jl2-logo). */
+     coordinates the home screen's own logo used (see .jl2-logo) — the home
+     screen no longer has a nav row of its own to match. */
   .jam-panel-nav { position: absolute; left: 6.74%; top: 91.8%; display: flex; gap: clamp(16px, 2.5vw, 36px); }
   .jam-panel-nav button {
     font-family: var(--font-en); font-size: 16px; font-weight: 400; letter-spacing: -0.2px;
@@ -540,17 +525,6 @@
   /* Keep the intentionally tiny unread badge bold. */
   .js-incoming-badge { font-weight: 700 !important; }
 
-  /* Home navigation is a real control layer, above the full-screen home click target. */
-  .jl2-nav {
-    z-index: 1000 !important;
-    pointer-events: auto !important;
-  }
-  .jl2-nav button {
-    position: relative;
-    z-index: 1001;
-    pointer-events: auto !important;
-  }
-
   /* ===== subtle transition motion ===== */
   #screenHome.jl-leaving {
     opacity: 0;
@@ -591,13 +565,11 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
-  .jam-panel-nav button,
-  .jl2-nav button {
+  .jam-panel-nav button {
     transition: opacity .18s ease;
   }
 
-  .jam-panel-nav button:hover,
-  .jl2-nav button:hover {
+  .jam-panel-nav button:hover {
     opacity: .6;
   }
 
@@ -832,13 +804,6 @@
     <path d="M-0.000133514 55.6818V51.224H20.8254V28.4453C20.8254 24.3354 17.3524 21.0038 13.068 21.0038C8.7837 21.0038 5.31074 24.3354 5.31074 28.4453H-0.000133514C-0.000133514 21.5227 5.85166 15.9091 13.068 15.9091C20.2844 15.9091 26.1362 21.5227 26.1362 28.4453V55.6818H-0.000133514Z" fill="black"/>
     <path d="M49.0023 0V4.64666H43.4432L47.3161 15.3887V16.8554H42.5315L38.8373 4.292H36.9068V16.8554H31.8184V0H49.0023ZM31.8184 55.6758V19.5364H68.1288V55.6758H31.8184ZM62.5517 24.3033H37.3895V50.9089H62.5517V24.3033ZM62.5517 16.8494V4.76689H56.7542V16.8494H51.1831V0H68.1288V16.8494H62.5577H62.5517Z" fill="black"/>
   </svg>
-
-  <nav class="jl2-nav">
-    <button type="button" id="homeNavLogin"><span class="js-nav-login-label">LOGIN</span><span class="js-incoming-badge"></span></button>
-    <button type="button" id="homeNavFriends">FRIENDS</button>
-    <button type="button" id="homeNavJam">JAM</button>
-    <button type="button" id="homeNavUpload">UPLOAD</button>
-  </nav>
 </div>
 
 <div id="screenArchive" class="app">
@@ -2435,36 +2400,6 @@ animate();
     home.classList.remove('jl-leaving');
   }
 
-  function openArchiveNav(id) {
-    goToArchive();
-    setTimeout(function () {
-      var target = document.getElementById(id);
-      if (target) target.click();
-    }, 720);
-  }
-
-  // Delegate from the nav itself. This prevents the full-screen home click
-  // handler from swallowing the navigation controls.
-  var nav = document.querySelector('.jl2-nav');
-  if (nav) {
-    nav.addEventListener('click', function (e) {
-      var button = e.target.closest('button');
-      if (!button) return;
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (button.id === 'homeNavLogin') {
-        openArchiveNav('navLogin');
-      } else if (button.id === 'homeNavFriends') {
-        openArchiveNav('navFriends');
-      } else if (button.id === 'homeNavJam') {
-        openArchiveNav('navJam');
-      } else if (button.id === 'homeNavUpload') {
-        openArchiveNav('navUpload');
-      }
-    });
-  }
-
   var archiveHomeLogo = document.getElementById('archiveHomeLogo');
   if (archiveHomeLogo) {
     archiveHomeLogo.addEventListener('click', function (e) {
@@ -2474,8 +2409,10 @@ animate();
     });
   }
 
-  home.addEventListener('click', function (e) {
-    if (e.target.closest && e.target.closest('.jl2-nav')) return;
+  // The home screen no longer has its own nav row (LOGIN/FRIENDS/JAM/UPLOAD)
+  // — clicking anywhere on it is now the only way in, and it always lands
+  // on the archive's default view rather than jumping to a specific one.
+  home.addEventListener('click', function () {
     goToArchive();
   });
 })();
