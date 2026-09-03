@@ -408,21 +408,21 @@
 
   /* "친구 추가" row — matches the Figma reference (node 57:405): a plain
      inline row right under the title, always visible (no toggle button /
-     collapsible boxed form), two borderless inputs and a text button.
-     These inputs are NOT a header for the data columns below (Figma
-     positions 이름/메일 at the row's left edge regardless of where the
-     번호/이름/이메일 data columns start) — they're their own compact
-     cluster on the left, reusing .friend-row's 44px height so it lines up
-     with the list below. 친구 추가 sits alone at the far right of the row
-     (not clustered right after the inputs) — the spacer between it and
-     the inputs is what pushes it there. */
-  .friend-add-row { display: flex; align-items: center; height: 44px; flex-shrink: 0; margin-bottom: 4px; gap: 12px; }
+     collapsible boxed form), two borderless inputs and a text button,
+     reusing .friend-row's 44px height so it lines up with the list below.
+     메일's flex-basis is set to match .friend-number's 19.32% exactly, so
+     its text starts flush with where 이름 starts in the list below (rather
+     than immediately after 이름's own input, which is how Figma originally
+     laid it out) — 친구 추가 sits alone at the far right of the row (not
+     clustered right after the inputs); the spacer between it and the
+     inputs is what pushes it there. */
+  .friend-add-row { display: flex; align-items: center; height: 44px; flex-shrink: 0; margin-bottom: 4px; }
   .friend-add-input {
     flex: 0 0 auto; min-width: 0; appearance: none; border: none; background: none; padding: 0;
     font-family: var(--font-kr); font-size: 13px; color: var(--black);
   }
-  .friend-add-input.friend-add-name { width: 70px; }
-  .friend-add-input.friend-add-email { width: 90px; }
+  .friend-add-input.friend-add-name { flex: 0 0 19.32%; }
+  .friend-add-input.friend-add-email { width: 90px; margin-right: 12px; }
   .friend-add-input::placeholder { color: #595757; }
   .friend-add-input:focus { outline: none; }
   .friend-add-btn {
