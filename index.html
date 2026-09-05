@@ -219,6 +219,11 @@
     font-family: var(--font-en); font-size: 16px; color: var(--black);
   }
   .jam-list-share:hover { opacity: 0.6; }
+  .jam-list-icon-btn { margin-left: 8px; }
+  .jam-list-title-input {
+    flex: 1 1 48%; min-width: 0; margin-right: 10px; font-size: 16px; font-family: var(--font-kr);
+    color: var(--black); border: none; border-bottom: 1px solid var(--black); background: none; padding: 0 0 1px;
+  }
   .archive-locked { margin: auto; text-align: center; color: var(--black); font-size: 14px; line-height: 1.7; opacity: 0.7; }
 
   .jam-list-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 20px; flex-shrink: 0; }
@@ -280,8 +285,23 @@
   /* Order matches Figma node 57:405 top-to-bottom: title, then date, then
      the play bar, then the script text — not date-before-title or the play
      bar trailing the text, which is what this card had before. */
+  .info-title-row { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .info-title { font-size: 16px; font-weight: 700; margin: 0; flex-shrink: 0; }
+  .info-title-row .info-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .info-title-edit {
+    appearance: none; border: none; background: none; padding: 2px; margin: 0; flex-shrink: 0;
+    font-size: 13px; line-height: 1; color: var(--gray); cursor: pointer;
+  }
+  .info-title-edit:hover { color: var(--black); }
+  .lc-detail-delete { display: flex; align-items: center; justify-content: center; }
+  .lc-detail-delete:hover { color: #d64545; }
+  .info-title-input {
+    font-size: 16px; font-weight: 700; font-family: var(--font-kr); color: var(--black);
+    border: none; border-bottom: 1px solid var(--black); background: none; padding: 0 0 1px;
+    flex: 1 1 auto; min-width: 0;
+  }
   .info-date { font-size: 11px; color: var(--gray); flex-shrink: 0; }
+  .info-title-row .laugh-collection-title { margin: 0; }
   /* Play bar — matches Figma node 57:405: a wide, pill-shaped track with a
      yellow fill and a small round scrubber dot riding its leading edge (the
      ::after on the fill), with the play/pause button sitting to the RIGHT of
@@ -489,9 +509,9 @@
   .incoming-reply-form button:hover { background: var(--home-yellow-border); }
   .incoming-empty { font-size: 13px; color: #595757; font-family: var(--font-en); text-align: center; padding: 20px 0; }
 
-  /* UPLOAD (오브제 연결) panel — see .upload-dropzone etc. further down for
-     the drag & drop rework; this panel is otherwise a plain .jam-panel-view
-     with an h3 heading like every other screen. */
+  /* CONNECTION (오브제 연결) panel — see the 잼 연결 rules further down; this
+     panel is otherwise a plain .jam-panel-view with an h3 heading like every
+     other screen. */
 
   .toast { position: absolute; left: 50%; bottom: 90px; transform: translateX(-50%) translateY(10px); background: var(--black); color: var(--white); font-size: 12.5px; padding: 8px 16px; border-radius: 20px; opacity: 0; pointer-events: none; transition: opacity 0.25s ease, transform 0.25s ease; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -506,6 +526,7 @@
   .jam-panel-nav button,
   .jam-list-row,
   .jam-list-title,
+  .jam-list-title-input,
   .jam-list-date,
   .jam-list-share,
   .jam-list-pagination button,
@@ -514,9 +535,17 @@
   .friend-email,
   .friend-add-input,
   .friend-add-btn,
-  .upload-dropzone-text,
-  .upload-filename,
-  .upload-submit-btn,
+  .arduino-status-text,
+  .arduino-connect-btn,
+  .mic-test-link,
+  .laugh-collection-title,
+  .laugh-collection-name,
+  .laugh-collection-date,
+  .laugh-collection-empty,
+  .cd-empty,
+  .cd-tab,
+  .detection-time,
+  .lc-footer-btn,
   .jam-gate-text,
   .jam-gate-check-label,
   .jam-gate-submit,
@@ -708,39 +737,106 @@
     .jam-gate-check-row, .jam-gate-smile-header { padding: 16px 20px; }
   }
 
-  /* ===================== UPLOAD panel: drag & drop (Figma-independent —
-     replaces the old static "오브제 연결됨" status + canned file list with a
-     real drop target for a file from the user's own computer). ===================== */
-  .upload-dropzone {
-    flex: 1; min-height: 160px; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 12px; text-align: center;
-    border: 2px dashed var(--home-yellow-border); background: #fffdf2;
-    cursor: pointer; padding: 24px; transition: background .15s ease, border-color .15s ease;
+  /* ===================== CONNECTION panel: 잼 연결 (일단 컴퓨터 마이크) =====================
+     One "연결하기" button — no separate source picker. Real Arduino hardware
+     isn't available yet, so this currently connects to the computer's own
+     mic (getUserMedia) to test the detection flow; see initConnectionPanel()
+     in main.js for the swap point back to Web Serial once real hardware is
+     on hand. A detection also starts a short rolling-buffer recording of the
+     mic itself (MediaRecorder), so every detected jam gets a real, playable
+     clip automatically — no manual file needed just to see the feature work
+     end to end without real Arduino hardware.
+     Two tabs share one box (Figma nodes 89:463 disconnected / 88:103
+     Collection / 87:2 Detection): "Collection" is every jam a detection has
+     created, each row playable in place and (re)uploadable from disk;
+     "Detection" shows the most recent detection with a (decorative) waveform
+     and the same play/progress control. */
+  .cd-header-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+  .cd-status { display: flex; align-items: center; gap: 10px; }
+  .cd-tabs { display: flex; gap: 18px; }
+  .cd-tab { appearance: none; border: none; background: none; padding: 0; font-family: var(--font-en); font-size: 13px; color: #949494; cursor: pointer; }
+  .cd-tab:hover { color: #595757; }
+  .cd-tab.active { color: var(--black); font-weight: 700; }
+
+  .arduino-status-dot {
+    width: 9px; height: 9px; border-radius: 50%; background: #b5b5b5; flex-shrink: 0;
+    transition: background .2s ease;
   }
-  .upload-dropzone:hover, .upload-dropzone.dragover {
-    background: var(--home-yellow); border-color: var(--home-yellow-border);
+  .arduino-status-dot.connected { background: #3bb54a; }
+  .arduino-status-dot.detecting { background: var(--home-yellow-border); animation: arduinoPulse .6s ease-in-out infinite alternate; }
+  @keyframes arduinoPulse { from { opacity: 1; } to { opacity: .35; } }
+  .arduino-status-text { margin: 0; font-size: 14px; font-family: var(--font-kr); color: #595757; }
+  .arduino-connect-btn {
+    border: 1px solid var(--gray); background: none; height: 26px; padding: 0 12px;
+    font-family: var(--font-en); font-size: 12px; cursor: pointer; color: var(--black); flex-shrink: 0;
   }
-  .upload-dropzone-icon { width: 32px; height: 32px; color: #595757; flex-shrink: 0; }
-  .upload-dropzone-text { margin: 0; font-size: 14px; font-family: var(--font-kr); color: #595757; }
-  .upload-filename {
-    margin: 0; font-size: 16px; font-family: var(--font-kr); color: var(--black);
-    display: none; word-break: break-all;
+  .arduino-connect-btn:hover { background: #f5f5f5; }
+  .arduino-connect-btn:disabled { opacity: .4; cursor: not-allowed; }
+  /* 테스트용 마이크 연결 — 실제 아두이노 연결(위 버튼)보다 눈에 덜 띄는
+     보조 텍스트 버튼. 아두이노가 없어도 감지 파이프라인을 확인해볼 수
+     있도록 남겨둔 것이라 항상 작고 옅게 둔다. */
+  .mic-test-link {
+    border: none; background: none; padding: 0; height: 26px; flex-shrink: 0;
+    font-family: var(--font-kr); font-size: 11px; color: #b5b5b5; text-decoration: underline;
+    cursor: pointer;
   }
-  .upload-filename.show { display: block; }
-  .upload-submit-btn {
-    /* The panel's own bottom edge (.jam-panel-view { bottom: 15% }) sits
-       close enough to the JAM logo mark pinned at the panel's bottom-right
-       (.jam-panel-logo) that a dropzone using flex:1 to fill all the way
-       down to that edge — unlike the other panels, whose shorter content
-       never actually reaches it — visibly crowds the logo. This margin
-       gives the button (and so the dropzone above it, via flex:1) the same
-       kind of breathing room the other panels get before that corner. */
-    margin: 16px 0 32px; width: 100%; height: 35px; border: none; flex-shrink: 0;
-    background: var(--home-yellow); color: var(--black);
-    font-family: var(--font-en); font-size: 16px; cursor: pointer;
+  .mic-test-link:hover { color: #949494; }
+  .mic-test-link:disabled { opacity: .4; cursor: not-allowed; text-decoration: none; }
+
+  .cd-box { height: 300px; background: #fafafa; padding: 16px; overflow-y: auto; }
+  .cd-panel { height: 100%; }
+  .cd-panel[hidden] { display: none; }
+  #cdCollectionList[hidden], #cdCollectionDetail[hidden], #cdDetectionPanel[hidden] { display: none; }
+  /* 상세 화면(87:2) — 제목은 위, 재생줄(시간+진행바+재생버튼)은 박스 맨
+     아래, 파형은 그 사이 남는 공간 한가운데에 오도록 세로 flex로 배치.
+     예전엔 셋 다 그냥 위에서부터 순서대로 쌓여서 밑에 빈 회색 공간이
+     크게 남았음. */
+  #cdCollectionDetail { height: 100%; display: flex; flex-direction: column; }
+  #cdCollectionDetail .info-title-row { flex-shrink: 0; }
+  #cdCollectionDetail .detection-player { flex-shrink: 0; }
+  /* Detection 탭도 같은 방식 — 제목(+녹음중 표시)은 위에 고정, 파형은
+     그 밑에 남는 공간 한가운데로. 재생줄이 없는 화면이라 파형 아래쪽으로도
+     남는 공간이 대칭으로 남는다. */
+  #cdDetectionPanel { height: 100%; display: flex; flex-direction: column; }
+  #cdDetectionPanel > * { flex-shrink: 0; }
+  .detection-recording-label { margin: -6px 0 10px; font-size: 12px; font-family: var(--font-kr); color: var(--black); font-weight: 700; animation: arduinoPulse .6s ease-in-out infinite alternate; }
+  .laugh-collection-title { margin: 0 0 12px; font-size: 14px; font-family: var(--font-kr); color: #595757; }
+  .laugh-collection-rows { display: flex; flex-direction: column; }
+  .laugh-collection-row {
+    width: 100%; display: flex; align-items: center; gap: 8px; height: 44px;
+    border-bottom: 1px solid var(--gray);
   }
-  .upload-submit-btn:hover:not(:disabled) { background: var(--home-yellow-border); }
-  .upload-submit-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .laugh-collection-row:last-child { border-bottom: none; }
+  .laugh-collection-row.selected { background: rgba(254,220,59,0.35); }
+  .laugh-collection-main {
+    flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 10px;
+    border: none; background: none; padding: 0; text-align: left; cursor: pointer;
+  }
+  .laugh-collection-name { flex: 1 1 auto; font-size: 14px; font-family: var(--font-kr); color: var(--black); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .laugh-collection-date { flex: 0 0 auto; font-size: 12px; font-family: var(--font-en); color: #595757; }
+  .laugh-collection-empty, .cd-empty { padding: 16px 0; font-size: 13px; font-family: var(--font-kr); color: #949494; text-align: center; }
+
+  /* 막대 자체 높이는 낮고 고정 — 대신 위/아래 여백(margin: auto)이 남는
+     공간을 똑같이 나눠 가지면서 박스 안에서 자연스럽게 가운데로 온다.
+     (flex:1로 통째로 늘리면 막대가 너무 커져서 그냥 높이는 작게 고정하고
+     바깥 여백으로만 중앙정렬.) */
+  .detection-wave { height: 70px; flex: 0 0 auto; margin: auto 0; padding: 0 30px; display: flex; align-items: center; justify-content: space-between; }
+  .detection-wave[hidden] { display: none; }
+  .detection-wave span { width: 4px; flex: 0 0 auto; background: #e5e5e5; border-radius: 999px; transition: height .1s ease, background .2s ease; }
+  .detection-wave.active span { background: var(--home-yellow-border); }
+  .detection-wave.recording span { background: var(--home-yellow-border); animation: arduinoPulse .5s ease-in-out infinite alternate; }
+  .detection-player { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+  .detection-player[hidden] { display: none; }
+  .detection-time { font-size: 11px; font-family: var(--font-en); color: #595757; flex-shrink: 0; }
+
+  .laugh-collection-footer { display: flex; gap: 10px; margin-top: 16px; }
+  .lc-footer-btn { flex: 1; height: 35px; border: none; font-family: var(--font-en); font-size: 15px; cursor: pointer; color: var(--black); }
+  .lc-back-btn { background: #efefef; }
+  .lc-back-btn:hover { background: #e2e2e2; }
+  .lc-upload-btn { background: var(--home-yellow); }
+  .lc-upload-btn:hover { background: var(--home-yellow-border); }
+  .lc-upload-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .lc-upload-btn[hidden] { display: none; }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
@@ -823,7 +919,9 @@
 
     <div class="info-panel" id="infoPanel">
       <button class="info-close" id="infoClose">×</button>
-      <h3 class="info-title" id="infoTitle"></h3>
+      <div class="info-title-row">
+        <h3 class="info-title" id="infoTitle"></h3>
+      </div>
       <p class="info-date" id="infoDate"></p>
       <div class="info-controls" id="infoControlsMain">
         <div class="info-progress"><div class="info-progress-fill" id="infoProgressFill"></div></div>
@@ -908,16 +1006,55 @@
 
     <div class="jam-panel-view" id="objectCard">
       <h3>CONNECTION</h3>
-      <div class="upload-dropzone" id="uploadDropzone">
-        <input type="file" id="uploadFileInput" hidden />
-        <svg class="upload-dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-          <path d="M12 15.5V4M12 4l-4 4M12 4l4 4" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M4 15.5V18a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <p class="upload-dropzone-text">파일을 이곳에 끌어다 놓거나 클릭해서 선택하세요</p>
-        <p class="upload-filename" id="uploadFilename"></p>
+
+      <div class="cd-header-row">
+        <div class="cd-status">
+          <span class="arduino-status-dot" id="arduinoStatusDot"></span>
+          <p class="arduino-status-text" id="arduinoStatusText">연결하기</p>
+          <button type="button" class="arduino-connect-btn" id="arduinoConnectBtn">연결</button>
+          <button type="button" class="mic-test-link" id="micTestBtn">마이크로 테스트</button>
+        </div>
+        <div class="cd-tabs">
+          <button type="button" class="cd-tab active" id="cdTabCollection" data-tab="collection">Collection</button>
+          <button type="button" class="cd-tab" id="cdTabDetection" data-tab="detection">Detection</button>
+        </div>
       </div>
-      <button type="button" class="upload-submit-btn" id="uploadSubmitBtn" disabled>업로드</button>
+
+      <div class="cd-box">
+        <div class="cd-panel" id="cdCollectionPanel">
+          <div id="cdCollectionList">
+            <p class="laugh-collection-title">Laugh Collection</p>
+            <div class="laugh-collection-rows" id="laughCollectionRows"></div>
+          </div>
+          <div id="cdCollectionDetail" hidden>
+            <div class="info-title-row">
+              <p class="laugh-collection-title" id="lcDetailTitle"></p>
+              <button type="button" class="info-title-edit" id="lcDetailTitleEdit" aria-label="제목 수정">✎</button>
+              <button type="button" class="info-title-edit lc-detail-delete" id="lcDetailDelete" aria-label="항목 삭제">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M6 7h12l-1 14a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7zm3-4h6l1 2h4v2H4V5h4l1-2zM9 10v8h1.5v-8H9zm4.5 0v8H15v-8h-1.5z"/></svg>
+              </button>
+              <input type="text" class="info-title-input" id="lcDetailTitleInput" hidden maxlength="60">
+            </div>
+            <div class="detection-wave" id="lcDetailWave"></div>
+            <div class="detection-player" id="lcDetailPlayer" hidden>
+              <span class="detection-time" id="lcDetailTime">0:00</span>
+              <div class="info-progress"><div class="info-progress-fill" id="lcDetailProgressFill"></div></div>
+              <button type="button" class="info-play" id="lcDetailPlayBtn"><svg viewBox="0 0 24 24" fill="currentColor" id="lcDetailPlayIcon"><path d="M8 5v14l11-7z"/></svg></button>
+            </div>
+          </div>
+        </div>
+        <div class="cd-panel" id="cdDetectionPanel" hidden>
+          <p class="laugh-collection-title" id="detectionStatusTitle">Detection</p>
+          <p class="detection-recording-label" id="detectionRecordingLabel" hidden>녹음중..</p>
+          <p class="cd-empty" id="detectionEmptyMsg">연결하면 소리 감지 상태를 볼 수 있어요</p>
+          <div class="detection-wave" id="detectionWave" hidden></div>
+        </div>
+      </div>
+
+      <div class="laugh-collection-footer">
+        <button type="button" class="lc-footer-btn lc-back-btn" id="laughCollectionBack">BACK</button>
+        <button type="button" class="lc-footer-btn lc-upload-btn" id="laughCollectionUpload">UPLOAD</button>
+      </div>
     </div>
 
     <nav class="jam-panel-nav">
@@ -1042,6 +1179,8 @@ let archivePage = 1;
 let searchQuery = '';
 let selectedId = null;
 let selectedResponseIdx = null;
+let editingArchiveId = null; // 왼쪽 스테이지 정보창(script card)이 아니라, 오른쪽 JAM
+                              // 목록 행 자체에서 인라인으로 제목을 바꾸는 중인 항목의 id
 
 const $ = (id) => document.getElementById(id);
 const archiveListEl = $('archiveList');
@@ -1086,12 +1225,70 @@ function renderArchiveList() {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'jam-list-row' + (entry.id === selectedId ? ' active' : '');
-    btn.innerHTML = `<span class="jam-list-title"></span><span class="jam-list-date"></span>`;
+
+    // 인라인 제목 수정 중인 행 — 잼 오브젝트를 클릭했을 때 뜨는 왼쪽 스테이지
+    // 정보창(script card, #infoTitle 쪽)과는 별개로, 이 목록 행 자체에서
+    // 곧장 제목을 바꾼다. 편집 중엔 날짜만 남기고 편집/삭제/공유 버튼 대신
+    // 입력창을 보여준다.
+    if (entry.id === editingArchiveId) {
+      btn.classList.add('editing');
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'jam-list-title-input';
+      input.maxLength = 60;
+      input.value = entry.title;
+      input.addEventListener('click', (e) => e.stopPropagation());
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); commitArchiveTitleEdit(entry.id, input.value); }
+        else if (e.key === 'Escape') { e.preventDefault(); cancelArchiveTitleEdit(); }
+      });
+      input.addEventListener('blur', () => commitArchiveTitleEdit(entry.id, input.value));
+      btn.appendChild(input);
+      const dateSpan = document.createElement('span');
+      dateSpan.className = 'jam-list-date';
+      dateSpan.textContent = entry.date;
+      btn.appendChild(dateSpan);
+      archiveListEl.appendChild(btn);
+      input.focus();
+      input.select();
+      return;
+    }
+
+    // 제목 바로 옆에 편집/삭제 아이콘이 오도록(날짜보다 앞) title span만
+    // 먼저 만들고, 편집/삭제 버튼을 붙인 다음, 그 뒤에 날짜/공유를 붙인다.
+    btn.innerHTML = `<span class="jam-list-title"></span>`;
     btn.querySelector('.jam-list-title').textContent = entry.title;
-    btn.querySelector('.jam-list-date').textContent = entry.date;
     btn.addEventListener('click', () => {
       focusEntry(entry.id, true);
     });
+
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'info-title-edit jam-list-icon-btn';
+    editBtn.setAttribute('aria-label', '제목 수정');
+    editBtn.textContent = '✎';
+    editBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      editingArchiveId = entry.id;
+      renderArchiveList();
+    });
+    btn.appendChild(editBtn);
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.className = 'info-title-edit lc-detail-delete jam-list-icon-btn';
+    deleteBtn.setAttribute('aria-label', '잼 삭제');
+    deleteBtn.innerHTML = '<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M6 7h12l-1 14a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7zm3-4h6l1 2h4v2H4V5h4l1-2zM9 10v8h1.5v-8H9zm4.5 0v8H15v-8h-1.5z"/></svg>';
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteArchiveEntry(entry.id);
+    });
+    btn.appendChild(deleteBtn);
+
+    const dateSpan = document.createElement('span');
+    dateSpan.className = 'jam-list-date';
+    dateSpan.textContent = entry.date;
+    btn.appendChild(dateSpan);
 
     // "공유" — shares this jam directly from the list row without having to
     // open its script first. There used to be a second, differently-styled
@@ -1158,6 +1355,48 @@ function paginationRange(current, total) {
     last = i;
   });
   return withDots;
+}
+
+/* ---- JAM 목록 행 인라인 제목 수정/삭제 — 잼 오브젝트를 클릭했을 때 뜨는
+   왼쪽 스테이지 정보창(script card)의 자체 title-edit(startTitleEdit 등)과는
+   완전히 별개. 그쪽은 그대로 두고, 오른쪽 목록 행 자체에 편집/삭제 버튼을
+   추가한 것. ---- */
+function commitArchiveTitleEdit(id, value) {
+  if (editingArchiveId !== id) return; // 이미 취소/커밋되어 더 처리할 게 없음 (Escape 뒤에 이어지는 blur 등)
+  const entry = ARCHIVE_STORAGE.entries.find(e => e.id === id);
+  editingArchiveId = null;
+  if (entry) {
+    const next = (value || '').trim();
+    if (next && next !== entry.title) {
+      entry.title = next;
+      if (selectedId === entry.id) {
+        const stageTitle = $('infoTitle');
+        if (stageTitle) stageTitle.textContent = next;
+      }
+    }
+  }
+  renderArchiveList();
+}
+function cancelArchiveTitleEdit() {
+  editingArchiveId = null;
+  renderArchiveList();
+}
+function deleteArchiveEntry(id) {
+  const idx = ARCHIVE_STORAGE.entries.findIndex(e => e.id === id);
+  if (idx === -1) return;
+  const entry = ARCHIVE_STORAGE.entries[idx];
+  ARCHIVE_STORAGE.entries.splice(idx, 1);
+  if (editingArchiveId === id) editingArchiveId = null;
+  if (selectedId === id) {
+    selectedId = null;
+    infoPanel.classList.remove('active');
+    sharePanel.classList.remove('active');
+  }
+  // rebuildStagePage()가 mainMeshes를 통째로 비우고 filteredEntries() 기준
+  // 으로 다시 그려주므로, 삭제된 항목(과 그 체인)이 무대에 남는 일은 없다.
+  try { rebuildStagePage(); } catch (_) {}
+  renderArchiveList();
+  showToast('잼을 삭제했어요 — ' + entry.title);
 }
 
 $('searchInput').addEventListener('input', (e) => {
@@ -1600,70 +1839,863 @@ $('friendAddSubmit').addEventListener('click', submitFriendAdd);
   $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') submitFriendAdd(); });
 });
 
-/* ===================== object (오브제) upload — drag & drop ===================== */
-// Replaces the old canned "오브제 연결됨" status + preset file list: the user
-// drags an actual file from their computer (or clicks the dropzone to browse)
-// and presses 업로드 to add it to the archive as a new jam entry. The
-// dropzone/button are static markup (see #objectCard), so this wiring runs
-// once at load rather than being rebuilt every time the UPLOAD panel opens.
-let pendingUploadFile = null;
-function setPendingUploadFile(file) {
-  pendingUploadFile = file || null;
-  const nameEl = $('uploadFilename');
-  const btn = $('uploadSubmitBtn');
-  if (pendingUploadFile) {
-    nameEl.textContent = pendingUploadFile.name;
-    nameEl.classList.add('show');
-    btn.disabled = false;
-  } else {
-    nameEl.textContent = '';
-    nameEl.classList.remove('show');
-    btn.disabled = true;
+
+/* ===================== 잼 연결 — 아두이노 USB(Web Serial) + 마이크 테스트 =====================
+   기본 연결 방식은 진짜 아두이노(마이크 모듈이 달린) — "아두이노 연결"
+   버튼을 누르면 navigator.serial.requestPort()로 USB 포트를 선택해 연결
+   하고, 아두이노가 한 줄에 숫자 하나씩(예: analogRead 값) 계속 보내주는
+   걸 그대로 소리 레벨로 사용한다. 값이 임계값을 넘으면 "LAUGH" 감지와
+   똑같이 처리한다 (핀/보드레이트/스케치 쪽 프로토콜에 맞춰 ARDUINO_ADC_MAX,
+   SERIAL_BAUD_RATE만 바꾸면 됨).
+   그 옆의 작은 "마이크로 테스트" 버튼은 실제 아두이노 없이도 파이프라인을
+   확인해볼 수 있게 남겨둔 예전 방식 — getUserMedia + Web Audio로 마이크
+   입력 레벨을 보다가 순간적으로 튀면(웃음/박수 등) 똑같이 처리한다.
+   두 방식 다 connectionMode 한 슬롯을 공유해서 동시에 켤 수는 없고, 하나가
+   연결된 동안엔 다른 쪽 버튼이 비활성화된다.
+   감지되면 onLaughDetected(): 짧은 "저장중" 표시 → Collection 탭에 임시
+   항목 생성(createDetectionEntry) → Collection 상세 화면으로 이동해서 곧장
+   제목을 바꿀 수 있게 함. 이 시점엔 아직 "잼 항목창"(왼쪽 아카이브 목록·3D
+   스테이지)에는 올라가지 않는다 — 사용자가 상세 화면에서 UPLOAD를 눌러야
+   (uploadCollectionEntry) 비로소 진짜 잼으로 추가되고 3D pulseMesh 팝
+   애니메이션과 함께 JAM 목록으로 이동한다. 아두이노/마이크 둘 다 레벨만
+   보내올 뿐 실제 웃음소리 파일 자체는 못 받아오므로(마이크는 롤링 버퍼로
+   짧은 오디오를 같이 붙이지만, 아두이노는 그마저도 없음) 항목에 오디오가
+   없을 수 있다 — initLaughCollection()/uploadCollectionEntry() 참고. */
+let deviceConnectedFlag = false; // mirrors initConnectionPanel()'s connectionMode(!= null) — drives the Detection tab's live meter and "연결된 상태일 때 가항목들이 뜰 것" (아두이노든 마이크든 소스 무관)
+
+(function initConnectionPanel() {
+  const dot = $('arduinoStatusDot');
+  const statusText = $('arduinoStatusText');
+  const connectBtn = $('arduinoConnectBtn');
+  const micTestBtn = $('micTestBtn');
+  if (!dot || !statusText || !connectBtn) return;
+
+  // Three states, all shown in the one status line: disconnected ("연결하기"),
+  // connected and idle ("잼 연결됨"), and — only for the few seconds an actual
+  // detection is being handled — "웃음감지! 녹음 저장중". That last line is NOT
+  // a standing description of being connected; it only shows while a
+  // detection is in flight, then reverts to the idle connected line.
+  const IDLE_CONNECTED_TEXT = '잼 연결됨';
+  const DETECTING_TEXT = '웃음감지! 녹음 저장중';
+  const SAVE_BEAT_MS = 3000;
+  // 아두이노/마이크 둘 다 사람 목소리·주변 소음에도 계속 반응하는 라이브
+  // 신호라, 저장 직후 잠깐의 쿨다운을 둬서 한 번의 긴 웃음/시끄러운 소음이
+  // 여러 개의 항목으로 연달아 저장되는 것을 막음.
+  const MIC_COOLDOWN_MS = 2000;
+  // 레벨(0~1로 정규화된 값) 기준 임계값 — 평소 말소리는 이 아래, 웃음/박수
+  // 처럼 순간적으로 커지는 소리는 이 위로 올라가도록 잡은 값. 아두이노 쪽
+  // 마이크 모듈 감도가 다르면 이 값을 조정하면 됨. 튜닝 UI 없이 상수로만
+  // 둠 — 필요해지면 다시 슬라이더를 붙일 수 있음.
+  const MIC_THRESHOLD = 0.35;
+  // 감지 순간 앞뒤로 남겨두는 롤링 버퍼 길이 — "감지 → 진짜 녹음"까지 한
+  // 번에 확인할 수 있도록, 마이크 연결 중엔 항상 최근 오디오를 조금씩
+  // 들고 있다가 감지되는 순간의 조각을 그대로 항목에 붙임. (아두이노는
+  // 오디오 자체를 안 보내주므로 이 버퍼는 마이크 테스트 모드에서만 쓰임.)
+  const REC_CHUNK_MS = 250;
+  const REC_MAX_CHUNKS = 12; // ~3초
+  // 아두이노 시리얼 통신 설정 — 스케치 쪽 Serial.begin()과 반드시 맞춰야
+  // 한다. analogRead()가 그대로 한 줄씩(개행으로 구분) 오는 걸 가정 —
+  // 10비트 ADC(우노 등) 기준 0~1023을 0~1로 정규화해서 마이크 레벨과 같은
+  // 척도로 취급한다. 보드/센서가 다르면 이 두 값만 바꾸면 된다.
+  const SERIAL_BAUD_RATE = 9600;
+  const ARDUINO_ADC_MAX = 1023;
+
+  // 아두이노(Web Serial)와 마이크(getUserMedia) 중 지금 어느 쪽이 연결돼
+  // 있는지 — 한 번에 하나만 가능. null이면 둘 다 연결 안 된 상태.
+  let connectionMode = null; // null | 'arduino' | 'mic'
+  let flashTimer = null;
+  let cooldownUntil = 0;
+
+  // 마이크 테스트 모드 전용 상태
+  let micStream = null;
+  let audioCtx = null;
+  let analyser = null;
+  let micDataArray = null;
+  let micRafId = null;
+
+  let mediaRecorder = null;
+  let recentChunks = [];
+
+  // 아두이노(Web Serial) 모드 전용 상태
+  let serialPort = null;
+  let serialReader = null;
+
+  function setStatus(mode, text) {
+    dot.classList.remove('connected', 'detecting');
+    if (mode) dot.classList.add(mode);
+    statusText.textContent = text;
   }
+
+  function setRecordingVisual(isRecording) {
+    const waveEl = $('detectionWave');
+    const recLabelEl = $('detectionRecordingLabel');
+    if (waveEl) waveEl.classList.toggle('recording', isRecording);
+    if (recLabelEl) recLabelEl.hidden = !isRecording;
+  }
+
+  // 두 버튼의 라벨/활성화 상태를 지금의 connectionMode에 맞게 맞춘다 —
+  // 한쪽이 연결돼 있으면 다른 쪽은 눌러도 소용없으니 아예 비활성화한다.
+  function syncButtons() {
+    if (connectionMode === 'arduino') {
+      connectBtn.textContent = '연결 해제';
+      connectBtn.disabled = false;
+      if (micTestBtn) { micTestBtn.disabled = true; }
+    } else if (connectionMode === 'mic') {
+      connectBtn.textContent = '아두이노 연결';
+      connectBtn.disabled = true;
+      if (micTestBtn) { micTestBtn.textContent = '마이크 테스트 해제'; micTestBtn.disabled = false; }
+    } else {
+      connectBtn.textContent = '아두이노 연결';
+      connectBtn.disabled = false;
+      if (micTestBtn) { micTestBtn.textContent = '마이크로 테스트'; micTestBtn.disabled = false; }
+    }
+  }
+
+  function resetToDisconnected(message) {
+    connectionMode = null;
+    deviceConnectedFlag = false;
+    if (flashTimer) { clearTimeout(flashTimer); flashTimer = null; }
+    setStatus(null, message || '연결하기');
+    syncButtons();
+    setRecordingVisual(false);
+    updateDetectionWaveLive(0);
+    try { renderDetectionTab(); } catch (_) {}
+    // 연결 해제 시 상세 화면이 열려 있었으면 목록으로 되돌리고, 목록 자체도
+    // "연결하면 볼 수 있어요"로 다시 가려짐 (renderCollectionList 참고).
+    try { closeCollectionDetail(); } catch (_) {}
+  }
+
+  function pickMimeType() {
+    if (!window.MediaRecorder || !MediaRecorder.isTypeSupported) return '';
+    const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
+    return candidates.find((c) => { try { return MediaRecorder.isTypeSupported(c); } catch (_) { return false; } }) || '';
+  }
+
+  function onLaughDetected() {
+    if (!connectionMode) return;
+    if (flashTimer || Date.now() < cooldownUntil) return; // save in flight, or still cooling down
+    // Snapshot whatever's in the rolling buffer right now — this is the
+    // audio "around" the detection moment (see REC_MAX_CHUNKS above).
+    const capturedChunks = recentChunks.slice();
+    const capturedMimeType = mediaRecorder ? mediaRecorder.mimeType : '';
+    setStatus('detecting', DETECTING_TEXT);
+    setRecordingVisual(true); // Detection 탭에 "녹음중.." 표시 — 기준치를 넘어 실제로 녹음이 시작됐다는 시각적 신호
+    flashTimer = setTimeout(() => {
+      flashTimer = null;
+      setRecordingVisual(false);
+      const newEntry = createDetectionEntry();
+      // Real audio, captured automatically from the mic buffer — no manual
+      // file attachment needed just to confirm the pipeline actually works
+      // without real Arduino hardware. This entry is still just sitting in
+      // the Collection tab (see createDetectionEntry) — it only becomes a
+      // real jam once UPLOAD is pressed in its detail screen.
+      if (capturedChunks.length) {
+        try {
+          const blob = new Blob(capturedChunks, { type: capturedMimeType || 'audio/webm' });
+          const fr = new FileReader();
+          fr.onload = () => {
+            newEntry.audioUrl = fr.result;
+            newEntry.audioName = '마이크 자동 녹음';
+            renderLaughCollection();
+            if (selectedId === newEntry.id) showInfoForEntry(newEntry.id);
+          };
+          fr.readAsDataURL(blob);
+        } catch (_) {}
+      }
+      cooldownUntil = Date.now() + MIC_COOLDOWN_MS;
+      if (connectionMode) setStatus('connected', IDLE_CONNECTED_TEXT);
+      // 녹음이 끝나면 Detection 창(마이크 실시간 화면)이 아니라 Collection
+      // 창의 그 항목 상세 화면으로 바로 넘어가서, 제목을 곧장 바꿀 수 있게.
+      // forced: true — 이미 CONNECTION 화면에 있는 상태에서 불려도(감지는
+      // 어느 화면에 있든 백그라운드로 계속 돌아가므로) openOverlay의 "이미
+      // 열려 있으면 JAM 목록으로 토글" 로직에 걸려 다른 화면으로 튕기지 않게.
+      openOverlay('upload', { forced: true });
+      selectCDTab('collection');
+      openCollectionDetail(newEntry.id);
+      showToast('녹음 저장 완료 — 제목을 눌러 바꿀 수 있어요');
+    }, SAVE_BEAT_MS);
+  }
+
+  function micLevel() {
+    analyser.getByteTimeDomainData(micDataArray);
+    let sumSquares = 0;
+    for (let i = 0; i < micDataArray.length; i++) {
+      const norm = (micDataArray[i] - 128) / 128;
+      sumSquares += norm * norm;
+    }
+    const rms = Math.sqrt(sumSquares / micDataArray.length);
+    // Typical speech RMS on this scale is small — scaled up so normal
+    // talking sits well below the threshold and a laugh/clap clearly
+    // crosses it, without needing the mic gain cranked up.
+    return Math.min(1, rms * 4);
+  }
+
+  function micLoop() {
+    if (!analyser) return;
+    const lvl = micLevel();
+    updateDetectionWaveLive(lvl); // live "음향 감지 정도" readout on the Detection tab's waveform (see below)
+    if (lvl >= MIC_THRESHOLD) onLaughDetected();
+    micRafId = requestAnimationFrame(micLoop);
+  }
+
+  // 연결되는 순간 "저장된 파일들"이 드러나는 느낌을 주기 위해 — 이번
+  // 세션에 실제 감지/테스트로 만든 항목이 하나도 없으면 가짜 항목을 한
+  // 번만 채워 넣는다. "연결된 상태일 때 가항목들이 뜰 것" — 아두이노/마이크
+  // 어느 쪽으로 연결하든 똑같이 적용.
+  function seedFakeEntriesIfNeeded() {
+    if (!fakeEntriesSeeded && detectionEntries().length === 0) {
+      fakeEntriesSeeded = true;
+      for (let i = 0; i < 3; i++) createFakeTestEntry({ silent: true });
+      showToast('오브젝트에 저장된 잼을 불러왔어요');
+    }
+  }
+
+  function onDeviceConnected() {
+    try { renderDetectionTab(); } catch (_) {} // show the live wave immediately if the Detection tab is already open
+    try { renderLaughCollection(); } catch (_) {}
+  }
+
+  async function connectMic() {
+    // getUserMedia is only exposed at all in a "secure context" — https, or
+    // localhost. Opening this file directly (file://) or viewing it inside a
+    // sandboxed preview that doesn't delegate microphone permission are both
+    // non-secure/blocked contexts: navigator.mediaDevices won't even exist
+    // there, and the browser never shows a permission prompt — it's not that
+    // permission was denied, the API isn't reachable at all. That case gets
+    // its own message instead of the generic "지원 안 함" one, since the fix
+    // (serve over http(s)/localhost) is different.
+    if (!window.isSecureContext) {
+      setStatus(null, '마이크는 https 또는 localhost에서만 동작해요 — 파일을 직접 열면 권한 창이 안 떠요');
+      return;
+    }
+    if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+      setStatus(null, '이 브라우저(또는 이 화면)는 마이크 연결을 지원하지 않아요');
+      return;
+    }
+    try {
+      connectBtn.disabled = true;
+      if (micTestBtn) micTestBtn.disabled = true;
+      setStatus(null, '마이크 권한 요청 중...');
+      micStream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+      });
+      const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContextCtor();
+      const micSource = audioCtx.createMediaStreamSource(micStream);
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 1024;
+      // Deliberately NOT connected to audioCtx.destination — this only
+      // analyses the input, it never plays the mic back out (no feedback).
+      micSource.connect(analyser);
+      micDataArray = new Uint8Array(analyser.fftSize);
+      // Recording is a bonus on top of detection, not required for it — if
+      // MediaRecorder isn't available/fails, detection still works, items
+      // just land in Collection without audio until someone uploads one.
+      try {
+        if (window.MediaRecorder) {
+          const mimeType = pickMimeType();
+          mediaRecorder = mimeType ? new MediaRecorder(micStream, { mimeType }) : new MediaRecorder(micStream);
+          recentChunks = [];
+          mediaRecorder.ondataavailable = (e) => {
+            if (e.data && e.data.size) {
+              recentChunks.push(e.data);
+              if (recentChunks.length > REC_MAX_CHUNKS) recentChunks.shift();
+            }
+          };
+          mediaRecorder.start(REC_CHUNK_MS);
+        }
+      } catch (_) {
+        mediaRecorder = null;
+      }
+      connectionMode = 'mic';
+      deviceConnectedFlag = true;
+      setStatus('connected', IDLE_CONNECTED_TEXT);
+      syncButtons();
+      micLoop();
+      seedFakeEntriesIfNeeded();
+      onDeviceConnected();
+    } catch (err) {
+      const name = err && err.name;
+      let message = '마이크 연결에 실패했어요';
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+        message = '마이크 권한이 거부됐어요 — 브라우저 주소창의 사이트 설정에서 허용해주세요';
+      } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+        message = '연결된 마이크를 찾을 수 없어요';
+      }
+      resetToDisconnected(message);
+    }
+  }
+
+  function disconnectMic() {
+    if (flashTimer) { clearTimeout(flashTimer); flashTimer = null; }
+    if (micRafId) { cancelAnimationFrame(micRafId); micRafId = null; }
+    if (mediaRecorder) { try { mediaRecorder.stop(); } catch (_) {} mediaRecorder = null; }
+    recentChunks = [];
+    if (micStream) { micStream.getTracks().forEach((t) => t.stop()); micStream = null; }
+    if (audioCtx) { try { audioCtx.close(); } catch (_) {} audioCtx = null; }
+    analyser = null;
+    micDataArray = null;
+    resetToDisconnected();
+  }
+
+  /* ---- 아두이노(Web Serial) ----
+     analogRead 등 숫자 하나가 개행으로 구분돼 계속 들어오는 걸 가정하고,
+     줄 단위로 잘라 읽어서 그때그때 handleSerialLine()에 넘긴다. 마이크와
+     달리 오디오 자체는 안 들어오므로 recentChunks/mediaRecorder는 그대로
+     비워둔 채 — onLaughDetected()가 알아서 오디오 없이 항목을 만든다. */
+  function handleSerialLine(line) {
+    const num = parseFloat(line);
+    if (Number.isNaN(num)) return; // 숫자가 아닌 디버그 문자열 등은 무시
+    const lvl = Math.min(1, Math.max(0, num / ARDUINO_ADC_MAX));
+    updateDetectionWaveLive(lvl);
+    if (lvl >= MIC_THRESHOLD) onLaughDetected();
+  }
+
+  async function readSerialLoop(port) {
+    const decoder = new TextDecoder();
+    let buffer = '';
+    try {
+      while (port.readable && connectionMode === 'arduino') {
+        const reader = port.readable.getReader();
+        serialReader = reader;
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            if (value) {
+              buffer += decoder.decode(value, { stream: true });
+              let nlIdx;
+              while ((nlIdx = buffer.indexOf('\n')) >= 0) {
+                const line = buffer.slice(0, nlIdx).trim();
+                buffer = buffer.slice(nlIdx + 1);
+                if (line) handleSerialLine(line);
+              }
+            }
+          }
+        } finally {
+          reader.releaseLock();
+        }
+      }
+    } catch (_) {
+      // 케이블이 빠지는 등 읽는 도중 끊기면 여기로 온다 — 사용자가 직접
+      // "연결 해제"를 누른 게 아니라 예기치 않게 끊긴 경우만 안내 메시지를
+      // 보여준다 (정상 해제 시엔 connectionMode가 이미 null이라 이 루프
+      // 자체가 끝나 있음).
+      if (connectionMode === 'arduino') disconnectArduino('아두이노 연결이 끊어졌어요 — 케이블을 확인해주세요');
+    }
+  }
+
+  async function connectArduino() {
+    if (!('serial' in navigator)) {
+      setStatus(null, '이 브라우저는 아두이노 USB 연결을 지원하지 않아요 — Chrome/Edge 등 데스크톱 브라우저에서 열어주세요');
+      return;
+    }
+    try {
+      connectBtn.disabled = true;
+      if (micTestBtn) micTestBtn.disabled = true;
+      setStatus(null, '포트 선택 중...');
+      const port = await navigator.serial.requestPort();
+      await port.open({ baudRate: SERIAL_BAUD_RATE });
+      serialPort = port;
+      connectionMode = 'arduino';
+      deviceConnectedFlag = true;
+      setStatus('connected', IDLE_CONNECTED_TEXT);
+      syncButtons();
+      readSerialLoop(port);
+      seedFakeEntriesIfNeeded();
+      onDeviceConnected();
+    } catch (err) {
+      // 포트 선택 창에서 그냥 취소한 경우(NotFoundError)는 실패가 아니라
+      // 사용자가 마음을 바꾼 것 — 에러 문구 없이 조용히 원래 상태로.
+      const name = err && err.name;
+      const message = name === 'NotFoundError' ? null : '아두이노 연결에 실패했어요 — 케이블/포트를 확인해주세요';
+      resetToDisconnected(message);
+    }
+  }
+
+  async function disconnectArduino(message) {
+    const modeBeforeReset = connectionMode;
+    connectionMode = null; // readSerialLoop의 while 조건을 즉시 끊어서 재사용 방지
+    if (modeBeforeReset === 'arduino') {
+      try { if (serialReader) await serialReader.cancel(); } catch (_) {}
+      try { if (serialPort) await serialPort.close(); } catch (_) {}
+    }
+    serialPort = null;
+    serialReader = null;
+    resetToDisconnected(message);
+  }
+
+  connectBtn.addEventListener('click', () => {
+    if (connectionMode === 'arduino') disconnectArduino(); else if (!connectionMode) connectArduino();
+  });
+  if (micTestBtn) {
+    micTestBtn.addEventListener('click', () => {
+      if (connectionMode === 'mic') disconnectMic(); else if (!connectionMode) connectMic();
+    });
+  }
+})();
+
+/* ===================== CONNECTION panel: Collection / Detection tabs =====================
+   Figma nodes 89:463 (empty/disconnected), 88:103 (Collection 목록), 87:2
+   (항목 하나의 상세 — 제목+파형+재생/진행바).
+   - Collection 탭: 목록에서 항목을 클릭하면 "Collection 탭에 머문 채로" 그
+     자리에서 87:2 스타일 상세 화면(제목+파형+재생/진행바)이 나타난다. BACK을
+     누르면 다시 목록으로 — Detection 탭으로 전환되는 게 아니다.
+   - Detection 탭: 특정 항목과는 무관하게, 마이크가 연결돼 있는 동안의 실시간
+     음량 감지 상태만 보여주는 자리. 기준치를 넘어 실제로 녹음이 시작되면
+     "녹음중.." 표시가 뜬다. */
+let selectedLaughId = null; // Collection에서 지금 상세 화면으로 열려 있는 항목의 id — null이면 목록 화면
+let fakeEntriesSeeded = false; // "연결된 상태일 때 가항목들이 뜰 것" — 첫 연결 시 한 번만 채워 넣음 (connectMic 참고)
+// Collection 탭에만 존재하는 "업로드 전" 임시 항목들 — 실제 마이크 감지든
+// 가짜 테스트 항목이든 여기 먼저 쌓인다. 잼 항목창(ARCHIVE_STORAGE.entries,
+// 즉 왼쪽 JAM 목록과 3D 스테이지)에는 아직 없는 상태라서, 로그인 여부와
+// 무관하게 그냥 이 배열에 남아있다가 UPLOAD를 눌러야 옮겨간다
+// (uploadCollectionEntry 참고).
+let stagingEntries = [];
+function detectionEntries() {
+  return stagingEntries;
 }
-function submitUploadFile() {
-  if (!pendingUploadFile) return;
-  const f = pendingUploadFile;
+function findStagingEntry(id) {
+  return id ? stagingEntries.find(e => e.id === id) : null;
+}
+
+/* ---- shared "감지된 항목 하나 생성" 로직 — 실제 마이크 자동 감지와, 아래
+   가짜 테스트 항목 만들기가 똑같은 파이프라인을 타도록 공통화한 것. 아직은
+   Collection 탭의 stagingEntries에만 쌓아둘 뿐, 잼 항목창(아카이브/3D
+   스테이지)에는 올리지 않는다 — 그건 uploadCollectionEntry()의 몫. 새로
+   만든 항목을 자동으로 선택/오픈하지 않는다 — 그냥 목록에 추가만 되고,
+   사용자가 직접 클릭해서 열어본다. */
+function createDetectionEntry(opts) {
+  opts = opts || {};
   const today = new Date();
   const dateStr = String(today.getFullYear()).slice(2) + '.' + String(today.getMonth() + 1).padStart(2, '0') + '.' + String(today.getDate()).padStart(2, '0');
   const newEntry = {
-    id: 'u' + Date.now(),
-    title: f.name.replace(/\.[a-z0-9]+$/i, '').replace(/_/g, ' '),
+    id: 'a' + Date.now() + '-' + Math.floor(Math.random() * 10000),
+    title: opts.title || ('웃음 감지 잼 ' + dateStr),
     date: dateStr,
-    script: '오브제에서 방금 업로드한 잼이에요. 아직 스크립트가 다듬어지지 않았어요.',
+    script: opts.script || '잼이 감지한 웃음으로 자동 생성된 잼이에요. 아직 스크립트가 다듬어지지 않았어요.',
     responses: [],
+    fromDetection: true, // Collection 탭 출신(업로드 전) 항목이라는 표시
   };
-  ARCHIVE_STORAGE.entries.unshift(newEntry);
-  archivePage = 1;
-  addStageObject(newEntry, true);
-  renderArchiveList();
-  setPendingUploadFile(null);
-  $('uploadFileInput').value = '';
-  openOverlay('list');
-  showToast('업로드 완료 — JAM 목록에 추가됐어요');
+  if (opts.audioUrl) {
+    newEntry.audioUrl = opts.audioUrl;
+    newEntry.audioName = opts.audioName || '테스트 오디오';
+  }
+  stagingEntries.unshift(newEntry);
+  renderLaughCollection();
+  return newEntry;
 }
-(function initUploadDropzone() {
-  const zone = $('uploadDropzone');
-  const input = $('uploadFileInput');
-  const btn = $('uploadSubmitBtn');
-  if (!zone || !input || !btn) return;
-  zone.addEventListener('click', () => input.click());
-  input.addEventListener('change', () => {
-    if (input.files && input.files[0]) setPendingUploadFile(input.files[0]);
+
+/* ---- UPLOAD — Collection 상세 화면에서 누르면 그제서야 이 항목이 진짜
+   잼 항목창(아카이브 목록 + 3D 스테이지)에 추가된다. 컴퓨터 파일을
+   업로드하는 버튼이 아니라, "이 감지 결과를 진짜 잼으로 확정한다"는 뜻의
+   버튼 — 파일 선택 창은 뜨지 않는다. */
+function uploadCollectionEntry(entryId) {
+  const idx = stagingEntries.findIndex(e => e.id === entryId);
+  if (idx === -1) return;
+  const entry = stagingEntries.splice(idx, 1)[0];
+  ARCHIVE_STORAGE.entries.unshift(entry);
+  archivePage = 1;
+  closeCollectionDetail(); // Collection은 목록 화면으로 복귀 (이 항목은 이제 거기서 빠짐)
+  openOverlay('list', { forced: true }); // 잼 항목창(JAM 목록/3D 스테이지)으로 이동해서 결과를 바로 보여줌
+  // addStageObject/pulseMesh는 3D 스테이지를 건드리므로, 아직 스테이지가
+  // 준비되기 전이어도 여기서 조용히 실패하고 아카이브 저장 자체는 그대로
+  // 유지되도록 감싼다.
+  try {
+    addStageObject(entry, true);
+    pulseMesh(mainMeshes.get(entry.id));
+  } catch (_) {}
+  showToast('잼 항목창에 추가됐어요 — ' + entry.title);
+}
+
+/* ---- 삭제 — 업로드 전 Collection 항목을 그냥 버린다. 아직 잼
+   항목창(아카이브/3D 스테이지)에는 올라간 적이 없는 상태라서, 여기서
+   지우면 stagingEntries에서만 빠지고 그걸로 끝(되돌릴 방법 없음, 확인
+   창은 따로 띄우지 않음 — 다른 버튼들도 다 그렇듯). */
+function deleteStagingEntry(entryId) {
+  const idx = stagingEntries.findIndex(e => e.id === entryId);
+  if (idx === -1) return;
+  const entry = stagingEntries.splice(idx, 1)[0];
+  if (rowPlayingId === entry.id) { rowAudioEl.pause(); rowPlayingId = null; }
+  closeCollectionDetail(); // 이 항목은 이제 없으니 목록 화면으로 복귀
+  showToast('항목을 삭제했어요 — ' + entry.title);
+}
+
+/* ---- 가짜 테스트 항목 — 실제 아두이노/마이크 감지 없이도 Collection
+   목록→항목 클릭→상세(재생/업로드) 흐름을 바로 확인할 수 있게 해달라는
+   요청. 진짜로 들리는 짧은 비프음을 WAV로 직접 만들어 데이터 URL로 붙여서,
+   가짜 항목이어도 재생 버튼이 실제로 동작한다. */
+function makeTestToneDataUrl(freq, durationSec) {
+  freq = freq || 440;
+  durationSec = durationSec || 0.7;
+  const sampleRate = 8000;
+  const numSamples = Math.floor(sampleRate * durationSec);
+  const buffer = new ArrayBuffer(44 + numSamples * 2);
+  const view = new DataView(buffer);
+  const writeStr = (offset, str) => { for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i)); };
+  writeStr(0, 'RIFF');
+  view.setUint32(4, 36 + numSamples * 2, true);
+  writeStr(8, 'WAVE');
+  writeStr(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, 1, true); // mono
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeStr(36, 'data');
+  view.setUint32(40, numSamples * 2, true);
+  for (let i = 0; i < numSamples; i++) {
+    const t = i / sampleRate;
+    // 짧게 페이드인/아웃해서 클릭 잡음 없이 자연스러운 "삐" 소리로 들리게 함.
+    const envelope = Math.min(1, i / (sampleRate * 0.02)) * Math.min(1, (numSamples - i) / (sampleRate * 0.08));
+    const sample = Math.max(-1, Math.min(1, Math.sin(2 * Math.PI * freq * t) * 0.3 * envelope));
+    view.setInt16(44 + i * 2, sample * 32767, true);
+  }
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+  }
+  return 'data:audio/wav;base64,' + btoa(binary);
+}
+const TEST_ENTRY_TITLES = ['가짜 웃음 감지 잼', '테스트 녹음 잼', '샘플 감지 잼', '더미 웃음 잼'];
+let testEntryCounter = 0;
+function createFakeTestEntry(opts) {
+  opts = opts || {};
+  testEntryCounter++;
+  const title = TEST_ENTRY_TITLES[(testEntryCounter - 1) % TEST_ENTRY_TITLES.length] + ' ' + testEntryCounter;
+  const freq = 330 + (testEntryCounter % 6) * 60;
+  const audioUrl = makeTestToneDataUrl(freq, 0.7);
+  const entry = createDetectionEntry({
+    title,
+    script: '실제 아두이노 감지 없이 기능 확인용으로 만든 가짜 잼이에요.',
+    audioUrl,
+    audioName: '테스트 비프음',
   });
-  ['dragenter', 'dragover'].forEach(evt => {
-    zone.addEventListener(evt, (e) => { e.preventDefault(); zone.classList.add('dragover'); });
+  if (!opts.silent) showToast('가짜 항목이 추가됐어요 — ' + entry.title);
+  return entry;
+}
+
+/* ---- Collection 상세 화면(87:2)에서 쓰는 재생 엘리먼트 — per-row 재생
+   버튼은 제거됐고, 이제 상세 화면을 열었을 때만 재생/진행바를 쓴다. ---- */
+const rowAudioEl = new Audio();
+let rowPlayingId = null;
+function formatClockTime(sec) {
+  sec = Math.floor(sec || 0);
+  return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+}
+function setLcDetailPlayIcon(playing) {
+  const el = $('lcDetailPlayIcon');
+  if (!el) return;
+  el.innerHTML = playing
+    ? '<rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/>'
+    : '<path d="M8 5v14l11-7z"/>';
+}
+rowAudioEl.addEventListener('timeupdate', () => {
+  const fill = $('lcDetailProgressFill');
+  const time = $('lcDetailTime');
+  if (rowAudioEl.duration && fill) fill.style.width = Math.min(100, (rowAudioEl.currentTime / rowAudioEl.duration) * 100) + '%';
+  if (time) time.textContent = formatClockTime(rowAudioEl.currentTime);
+});
+rowAudioEl.addEventListener('ended', () => {
+  rowPlayingId = null;
+  setLcDetailPlayIcon(false);
+  const fill = $('lcDetailProgressFill');
+  if (fill) fill.style.width = '100%';
+});
+function toggleDetailPlay(entry) {
+  if (!entry.audioUrl) return;
+  if (rowPlayingId === entry.id && !rowAudioEl.paused) {
+    rowAudioEl.pause();
+    rowPlayingId = null;
+    setLcDetailPlayIcon(false);
+    return;
+  }
+  if (rowAudioEl.src !== entry.audioUrl) rowAudioEl.src = entry.audioUrl;
+  rowAudioEl.currentTime = 0;
+  rowPlayingId = entry.id;
+  rowAudioEl.play().then(() => setLcDetailPlayIcon(true))
+    .catch(() => { rowPlayingId = null; setLcDetailPlayIcon(false); showToast('오디오 재생에 실패했어요'); });
+}
+
+/* ---- Collection 목록 화면 ---- */
+function renderCollectionList() {
+  const rows = $('laughCollectionRows');
+  if (!rows) return;
+  rows.innerHTML = '';
+  // 연결이 끊긴 동안은 이미 만들어진 항목이 있어도 목록을 보여주지 않는다 —
+  // "오브젝트에 연결돼 있을 때만 저장된 파일들이 보인다"는 개념이라서, 다시
+  // 연결하면 그대로 다시 나타난다 (재시드는 하지 않음).
+  if (!deviceConnectedFlag) {
+    const p = document.createElement('p');
+    p.className = 'laugh-collection-empty';
+    p.textContent = '연결하면 저장된 잼을 볼 수 있어요';
+    rows.appendChild(p);
+    return;
+  }
+  const list = detectionEntries();
+  if (!list.length) {
+    const p = document.createElement('p');
+    p.className = 'laugh-collection-empty';
+    p.textContent = '아직 잼이 없어요';
+    rows.appendChild(p);
+  } else {
+    list.forEach(entry => {
+      const row = document.createElement('div');
+      row.className = 'laugh-collection-row';
+      const main = document.createElement('button');
+      main.type = 'button';
+      main.className = 'laugh-collection-main';
+      main.innerHTML = '<span class="laugh-collection-name"></span><span class="laugh-collection-date"></span>';
+      main.querySelector('.laugh-collection-name').textContent = entry.title;
+      main.querySelector('.laugh-collection-date').textContent = entry.date;
+      main.addEventListener('click', () => openCollectionDetail(entry.id));
+      row.appendChild(main);
+      rows.appendChild(row);
+    });
+  }
+}
+
+/* ---- Collection 상세 화면 (87:2 스타일) — Collection 탭 안에서만 토글 ---- */
+function openCollectionDetail(entryId) {
+  const entry = findStagingEntry(entryId);
+  if (!entry) return;
+  cancelLcTitleEdit();
+  selectedLaughId = entryId;
+  const listEl = $('cdCollectionList');
+  const detailEl = $('cdCollectionDetail');
+  if (listEl) listEl.hidden = true;
+  if (detailEl) detailEl.hidden = false;
+  renderCollectionDetail();
+  refreshFooterButtons();
+}
+function closeCollectionDetail() {
+  cancelLcTitleEdit();
+  selectedLaughId = null;
+  if (rowPlayingId) { rowAudioEl.pause(); rowPlayingId = null; }
+  const listEl = $('cdCollectionList');
+  const detailEl = $('cdCollectionDetail');
+  if (detailEl) detailEl.hidden = true;
+  if (listEl) listEl.hidden = false;
+  renderCollectionList();
+  refreshFooterButtons();
+}
+
+/* ---- Collection 상세 화면의 제목 수정 — 정보 패널(script card)의 title-edit
+   과 같은 패턴(연필 아이콘 → 인풋으로 교체, Enter/블러 저장, Escape 취소). */
+function startLcTitleEdit() {
+  if (!selectedLaughId) return;
+  const entry = findStagingEntry(selectedLaughId);
+  if (!entry) return;
+  const input = $('lcDetailTitleInput');
+  const titleEl = $('lcDetailTitle');
+  const editBtn = $('lcDetailTitleEdit');
+  const deleteBtn = $('lcDetailDelete');
+  if (!input || !titleEl) return;
+  input.value = entry.title;
+  titleEl.hidden = true;
+  if (editBtn) editBtn.hidden = true;
+  if (deleteBtn) deleteBtn.hidden = true;
+  input.hidden = false;
+  input.focus();
+  input.select();
+}
+function commitLcTitleEdit() {
+  const input = $('lcDetailTitleInput');
+  const titleEl = $('lcDetailTitle');
+  const editBtn = $('lcDetailTitleEdit');
+  const deleteBtn = $('lcDetailDelete');
+  if (!input || input.hidden) return;
+  input.hidden = true;
+  if (titleEl) titleEl.hidden = false;
+  if (editBtn) editBtn.hidden = false;
+  if (deleteBtn) deleteBtn.hidden = false;
+  const entry = findStagingEntry(selectedLaughId);
+  if (entry) {
+    const next = input.value.trim();
+    if (next && next !== entry.title) {
+      entry.title = next;
+      if (titleEl) titleEl.textContent = next;
+    }
+  }
+}
+function cancelLcTitleEdit() {
+  const input = $('lcDetailTitleInput');
+  const titleEl = $('lcDetailTitle');
+  const editBtn = $('lcDetailTitleEdit');
+  const deleteBtn = $('lcDetailDelete');
+  if (!input || input.hidden) return;
+  input.hidden = true;
+  if (titleEl) titleEl.hidden = false;
+  if (editBtn) editBtn.hidden = false;
+  if (deleteBtn) deleteBtn.hidden = false;
+}
+function renderCollectionDetail() {
+  const entry = findStagingEntry(selectedLaughId);
+  const title = $('lcDetailTitle');
+  const player = $('lcDetailPlayer');
+  const wave = $('lcDetailWave');
+  if (!entry) return;
+  if (title) title.textContent = entry.title;
+  buildWaveBars(wave);
+  if (wave) wave.classList.add('active'); // 완료된 녹음이므로 노란 파형으로 표시 (실시간 갱신은 Detection 탭 쪽만)
+  if (entry.audioUrl) {
+    if (player) player.hidden = false;
+    if (rowAudioEl.src !== entry.audioUrl) {
+      rowAudioEl.pause();
+      rowAudioEl.src = entry.audioUrl;
+      rowAudioEl.currentTime = 0;
+      rowPlayingId = null;
+      setLcDetailPlayIcon(false);
+      const fill = $('lcDetailProgressFill');
+      if (fill) fill.style.width = '0%';
+      const time = $('lcDetailTime');
+      if (time) time.textContent = '0:00';
+    }
+  } else if (player) {
+    player.hidden = true;
+  }
+}
+// 파일 전체에서 "Collection 탭 갱신"을 부르는 이름은 이거 하나로 유지 —
+// 지금 목록 화면인지 상세 화면인지에 따라 알아서 맞는 쪽을 다시 그려준다.
+function renderLaughCollection() {
+  if (selectedLaughId) renderCollectionDetail(); else renderCollectionList();
+  refreshFooterButtons();
+}
+function refreshFooterButtons() {
+  const uploadBtn = $('laughCollectionUpload');
+  const tabCollection = $('cdTabCollection');
+  const onCollectionTab = !tabCollection || tabCollection.classList.contains('active');
+  if (uploadBtn) uploadBtn.disabled = !(onCollectionTab && selectedLaughId);
+}
+
+/* ---- Detection 탭: 항목과 무관한, 순수 실시간 음량 감지 표시 ---- */
+// Figma 87:2/87:26의 실제 라인 좌표(88:51~88:69, 19개)를 그대로 비율로
+// 환산한 값 — 100,100,100,123,123,123,95,95,95,95,75,75,75,75,75,95,123,123,140
+// (px, 기준값 140=100%). 왼쪽에서 오른쪽으로 커졌다가 작아지고 다시 커지는
+// 대칭 리듬이되, 75 구간 바로 다음에 95가 한 번 더 끼어드는 살짝 비대칭인
+// 지점까지 그대로 맞췄다 — 완전히 매끈한 좌우대칭이 아니라 이 "튐"이 실제
+// 디자인의 포인트라 얼버무리지 않고 반영.
+const WAVE_BAR_WEIGHTS = [71, 71, 71, 88, 88, 88, 68, 68, 68, 68, 54, 54, 54, 54, 54, 68, 88, 88, 100];
+function buildWaveBars(wave) {
+  if (!wave || wave.childElementCount) return; // bars built once
+  WAVE_BAR_WEIGHTS.forEach(h => {
+    const bar = document.createElement('span');
+    bar.style.height = h + '%';
+    wave.appendChild(bar);
   });
-  ['dragleave', 'dragend'].forEach(evt => {
-    zone.addEventListener(evt, (e) => { e.preventDefault(); zone.classList.remove('dragover'); });
+}
+function renderDetectionWave() {
+  buildWaveBars($('detectionWave')); // heights then driven live — see updateDetectionWaveLive
+}
+// Drives the same bars from the mic's current input level (0~1), called every
+// frame from micLoop() while connected — "음향 감지 정도"를 실시간으로 보여줌.
+function updateDetectionWaveLive(level) {
+  const wave = $('detectionWave');
+  if (!wave || !wave.childElementCount) return;
+  const bars = wave.children;
+  for (let i = 0; i < bars.length; i++) {
+    const weight = WAVE_BAR_WEIGHTS[i % WAVE_BAR_WEIGHTS.length] / 100;
+    const h = Math.max(8, Math.min(100, level * weight * 140));
+    bars[i].style.height = h + '%';
+  }
+}
+function renderDetectionTab() {
+  const statusTitle = $('detectionStatusTitle');
+  const recLabel = $('detectionRecordingLabel');
+  const emptyMsg = $('detectionEmptyMsg');
+  const wave = $('detectionWave');
+  if (!emptyMsg || !wave) return;
+  if (!deviceConnectedFlag) {
+    emptyMsg.hidden = false;
+    wave.hidden = true;
+    if (recLabel) recLabel.hidden = true;
+    if (statusTitle) statusTitle.textContent = 'Detection';
+    return;
+  }
+  emptyMsg.hidden = true;
+  wave.hidden = false;
+  renderDetectionWave();
+  if (statusTitle) statusTitle.textContent = '소리 감지 중...';
+}
+
+// 탭 버튼 전용 — Collection 탭으로 돌아오면 상세 화면이 열려 있었어도 항상
+// 목록부터 다시 보여준다 (열려 있던 항목은 다시 클릭해서 보면 됨).
+function selectCDTab(name) {
+  const tabCollection = $('cdTabCollection');
+  const tabDetection = $('cdTabDetection');
+  const panelCollection = $('cdCollectionPanel');
+  const panelDetection = $('cdDetectionPanel');
+  if (!tabCollection || !tabDetection || !panelCollection || !panelDetection) return;
+  const isCollection = name === 'collection';
+  tabCollection.classList.toggle('active', isCollection);
+  tabDetection.classList.toggle('active', !isCollection);
+  panelCollection.hidden = !isCollection;
+  panelDetection.hidden = isCollection;
+  if (isCollection) { closeCollectionDetail(); } else { renderDetectionTab(); }
+  refreshFooterButtons();
+}
+
+(function initLaughCollection() {
+  const uploadBtn = $('laughCollectionUpload');
+  const backBtn = $('laughCollectionBack');
+  const tabCollection = $('cdTabCollection');
+  const tabDetection = $('cdTabDetection');
+  const panelCollection = $('cdCollectionPanel');
+  const panelDetection = $('cdDetectionPanel');
+  const detailPlayBtn = $('lcDetailPlayBtn');
+  if (!uploadBtn || !backBtn) return;
+
+  // UPLOAD: 컴퓨터 파일을 선택하는 버튼이 아니다 — 지금 열려 있는 Collection
+  // 항목을 진짜 잼 항목창(아카이브/3D 스테이지)에 확정해서 추가하는 버튼.
+  uploadBtn.addEventListener('click', () => {
+    if (!selectedLaughId) { showToast('먼저 항목을 선택해주세요'); return; }
+    uploadCollectionEntry(selectedLaughId);
   });
-  zone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    zone.classList.remove('dragover');
-    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-    if (f) setPendingUploadFile(f);
+
+  // BACK: 상세 화면이 열려 있으면 Collection 목록으로만 돌아가고(=CONNECTION
+  // 패널에 그대로 머무름), 이미 목록 화면이면 원래대로 JAM 목록으로 나간다.
+  backBtn.addEventListener('click', () => {
+    if (selectedLaughId) { closeCollectionDetail(); return; }
+    openOverlay('list');
   });
-  btn.addEventListener('click', submitUploadFile);
+
+  if (detailPlayBtn) {
+    detailPlayBtn.addEventListener('click', () => {
+      const entry = findStagingEntry(selectedLaughId);
+      if (!entry || !entry.audioUrl) return;
+      toggleDetailPlay(entry);
+    });
+  }
+
+  const lcTitleEditBtn = $('lcDetailTitleEdit');
+  const lcTitleInput = $('lcDetailTitleInput');
+  const lcDeleteBtn = $('lcDetailDelete');
+  if (lcTitleEditBtn) lcTitleEditBtn.addEventListener('click', startLcTitleEdit);
+  if (lcDeleteBtn) {
+    lcDeleteBtn.addEventListener('click', () => {
+      if (!selectedLaughId) return;
+      deleteStagingEntry(selectedLaughId);
+    });
+  }
+  if (lcTitleInput) {
+    lcTitleInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); commitLcTitleEdit(); }
+      else if (e.key === 'Escape') { e.preventDefault(); cancelLcTitleEdit(); }
+    });
+    lcTitleInput.addEventListener('blur', commitLcTitleEdit);
+  }
+
+  if (tabCollection && tabDetection && panelCollection && panelDetection) {
+    tabCollection.addEventListener('click', () => selectCDTab('collection'));
+    tabDetection.addEventListener('click', () => selectCDTab('detection'));
+  }
+
+  renderLaughCollection();
+  renderDetectionTab();
 })();
 
 /* ===================== three.js scene ===================== */
@@ -1756,6 +2788,30 @@ function rebuildStagePage() {
 
 function addStageObject(entry, focus) {
   if (focus) { focusEntry(entry.id, true); } else { rebuildStagePage(); }
+}
+
+// A quick "pop" on a jam's 3D object the moment a detection creates it — an
+// on-stage interaction that ties the physical Arduino/mic module's laugh
+// detection to something visibly happening on the web itself, not just a
+// toast + a new list row. Overshoots past its resting scale then settles
+// back, like a small bounce. Purely additive to whatever material/position
+// logic already runs elsewhere — this only ever touches mesh.scale, and
+// always leaves it at its original scale when done.
+function pulseMesh(mesh) {
+  if (!mesh) return;
+  const base = mesh.scale.x;
+  const DURATION = 480;
+  const PEAK = 1.3;
+  const start = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  function tick(now) {
+    const t = Math.min(1, (now - start) / DURATION);
+    // ramps up to PEAK by 40% of the duration, then eases back down to base
+    const k = t < 0.4 ? (t / 0.4) : Math.max(0, 1 - ((t - 0.4) / 0.6));
+    mesh.scale.setScalar(base * (1 + (PEAK - 1) * k));
+    if (t < 1) requestAnimationFrame(tick);
+    else mesh.scale.setScalar(base);
+  }
+  requestAnimationFrame(tick);
 }
 
 /* ---- selection / children ---- */
@@ -1895,6 +2951,9 @@ function showInfoForEntry(id) {
   infoPanel.classList.add('active');
   activePanelMesh = mainMeshes.get(id);
   infoPanel.dataset.speakText = entry.script;
+  // A real uploaded recording (see Laugh Collection) takes over the play
+  // button from the speechSynthesis fallback — see playCurrent().
+  infoPanel.dataset.audioUrl = entry.audioUrl || '';
 }
 
 function showReactionForChild(id, idx) {
@@ -1918,6 +2977,7 @@ function showReactionForChild(id, idx) {
   const childMesh = childGroup ? childGroup.children[idx] : null;
   activePanelMesh = childMesh;
   infoPanel.dataset.speakText = resp.response || '';
+  infoPanel.dataset.audioUrl = ''; // reactions never have an uploaded recording
 }
 
 // SHARE now opens a friend-picker card in the same spot as the script card
@@ -1963,6 +3023,11 @@ $('infoShareBtn').addEventListener('click', () => {
   openSharePanel(selectedId);
 });
 $('shareClose').addEventListener('click', closeSharePanel);
+
+// 왼쪽 스테이지 정보창(script card) 자체의 title-edit 기능은 제거됨 —
+// 제목 수정은 이제 오른쪽 JAM 목록(renderArchiveList의 편집 아이콘)에서만
+// 한다. commitArchiveTitleEdit()이 현재 선택된 잼이면 #infoTitle 텍스트도
+// 함께 갱신해준다 (위 279번 줄 근처 참고).
 
 // PREV/NEXT step through this jam's chain on the stage — the parent script
 // first, then each friend's reaction in order — mirroring clicking each
@@ -2015,13 +3080,32 @@ $('infoNextBtn').addEventListener('click', () => {
 // (shifted left, and vertically re-centered on whichever jam was actually
 // clicked): see frameCenterX()/animateCenterTo() below.
 
-/* ---- speech playback ("음성이 나옴") ---- */
+/* ---- playback ("음성이 나옴") ----
+   Two mutually-exclusive sources feed the same play button + progress bar:
+   a real uploaded recording (infoPanel.dataset.audioUrl, attached via the
+   Laugh Collection upload flow) takes priority when present; otherwise this
+   falls back to reading the script aloud with speechSynthesis, same as
+   before. */
 let currentUtterance = null;
 let speechTimer = null;
+let sharedAudioEl = null;
+function getSharedAudioEl() {
+  if (!sharedAudioEl) {
+    sharedAudioEl = new Audio();
+    sharedAudioEl.addEventListener('timeupdate', () => {
+      if (sharedAudioEl.duration) {
+        $('infoProgressFill').style.width = Math.min(100, (sharedAudioEl.currentTime / sharedAudioEl.duration) * 100) + '%';
+      }
+    });
+    sharedAudioEl.addEventListener('ended', () => { setPlayIcon(false); $('infoProgressFill').style.width = '100%'; });
+  }
+  return sharedAudioEl;
+}
 function stopSpeech() {
   if (window.speechSynthesis) window.speechSynthesis.cancel();
   clearInterval(speechTimer);
   speechTimer = null;
+  if (sharedAudioEl) sharedAudioEl.pause();
   setPlayIcon(false);
   $('infoProgressFill').style.width = '0%';
   stopIncomingPlayback();
@@ -2032,6 +3116,16 @@ function setPlayIcon(playing) {
     : '<path d="M8 5v14l11-7z"/>';
 }
 function playCurrent() {
+  const audioUrl = infoPanel.dataset.audioUrl;
+  if (audioUrl) {
+    const audio = getSharedAudioEl();
+    stopSpeech();
+    if (audio.src !== audioUrl) audio.src = audioUrl;
+    audio.currentTime = 0;
+    setPlayIcon(true);
+    audio.play().catch(() => { setPlayIcon(false); showToast('오디오 재생에 실패했어요'); });
+    return;
+  }
   const text = infoPanel.dataset.speakText;
   if (!text) { showToast('재생할 음성이 없어요'); return; }
   if (!('speechSynthesis' in window)) { showToast('이 브라우저는 음성 재생을 지원하지 않아요'); return; }
@@ -2053,6 +3147,12 @@ function playCurrent() {
   window.speechSynthesis.speak(utter);
 }
 $('infoPlay').addEventListener('click', () => {
+  const audioUrl = infoPanel.dataset.audioUrl;
+  if (audioUrl) {
+    if (sharedAudioEl && !sharedAudioEl.paused) { stopSpeech(); return; }
+    playCurrent();
+    return;
+  }
   if (window.speechSynthesis && window.speechSynthesis.speaking) { stopSpeech(); return; }
   playCurrent();
 });
@@ -2415,6 +3515,8 @@ resizeRenderer();
 updateCameraFromSpherical();
 updateAuthUI();
 animate();
+// 가짜 테스트 항목은 이제 페이지 로드 시가 아니라 "연결하기"를 처음 누를 때
+// 채워진다 — 연결된 상태일 때만 Collection에 뜨도록 (see connectMic above).
 
 </script>
 <script>
