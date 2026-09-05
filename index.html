@@ -2361,7 +2361,7 @@ function makeTestToneDataUrl(freq, durationSec) {
   }
   return 'data:audio/wav;base64,' + btoa(binary);
 }
-const TEST_ENTRY_TITLES = ['가짜 웃음 감지 잼', '테스트 녹음 잼', '샘플 감지 잼', '더미 웃음 잼'];
+const TEST_ENTRY_TITLES = ['잼1', '잼2', '잼3', '잼4'];
 let testEntryCounter = 0;
 function createFakeTestEntry(opts) {
   opts = opts || {};
@@ -2371,11 +2371,11 @@ function createFakeTestEntry(opts) {
   const audioUrl = makeTestToneDataUrl(freq, 0.7);
   const entry = createDetectionEntry({
     title,
-    script: '실제 아두이노 감지 없이 기능 확인용으로 만든 가짜 잼이에요.',
+    script: '확인용으로 만든 잼이에요.',
     audioUrl,
     audioName: '테스트 비프음',
   });
-  if (!opts.silent) showToast('가짜 항목이 추가됐어요 — ' + entry.title);
+  if (!opts.silent) showToast('항목이 추가됐어요 — ' + entry.title);
   return entry;
 }
 
